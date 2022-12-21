@@ -1,0 +1,29 @@
+@import './common.scss';
+@import './element-ui.scss';
+
+.v-enter-active,
+.v-leave-active {
+  transition: opacity 0.5s ease;
+}
+.v-enter-from,
+.v-leave-to {
+  opacity: 0;
+}
+
+.dialog-operation,
+.dialog-table {
+  margin-bottom: 20px;
+}
+/* 分页 */
+.pagination {
+  // display: none;
+  padding: 0 20px;
+  overflow: hidden;
+}
+.pagination a {
+  text-decoration: none;
+  color: #fff;
+}
+.pagination a:active {
+  color: rgba(255, 255, 255, 0.8) !important;
+}

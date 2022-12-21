@@ -1,0 +1,139 @@
+.el-button--mini {
+  padding: 5px 13px;
+}
+
+.el-checkbox {
+  color: #fff;
+  &__label {
+    font-size: 16px;
+  }
+  &__inner {
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+  }
+}
+
+.el-table {
+  font-size: 16px;
+  color: #fff;
+  &__empty-text {
+    line-height: 200px;
+    color: #fff;
+  }
+  thead {
+    color: #fff;
+  }
+  th.el-table__cell {
+    background-color: #0b2d77;
+  }
+  th.el-table__cell.is-leaf {
+    border-bottom: none;
+  }
+  th.el-table__cell .cell .el-checkbox {
+    display: none;
+  }
+  td.el-table__cell {
+    border-bottom-color: #0f91ff;
+  }
+  .el-table__cell {
+    padding: 9px 0;
+  }
+}
+.el-table,
+.el-table::before,
+.el-table__expanded-cell,
+.el-table tr,
+.el-table__body tr:hover > td.el-table__cell {
+  background-color: transparent !important;
+}
+
+.el-form {
+  &-item {
+    margin-bottom: 25px;
+    .el-button + .el-button {
+      margin-left: 40px;
+    }
+  }
+  &-item__label {
+    font-size: 16px;
+    color: #fff;
+  }
+}
+
+.el-input {
+  font-size: 16px;
+  &__inner {
+    height: 42px;
+    line-height: 42px;
+    background-color: transparent;
+    border-color: #1acbfe;
+    color: #fff;
+  }
+}
+.el-input.is-disabled .el-input__inner,
+.el-input-number__decrease,
+.el-input-number__increase {
+  background-color: transparent;
+  border-color: #1acbfe !important;
+  color: #fff;
+}
+
+.el-color-picker {
+  &__panel {
+    background-color: #05193d;
+    border-color: #0e52d8;
+    .el-button {
+      padding: 0 6px;
+      font-size: 16px;
+      height: 28px !important;
+    }
+    .el-button.is-plain {
+      padding: 0 12px;
+      border-color: #1acbfe;
+      background-color: transparent;
+      color: #fff;
+      &:focus,
+      &:hover {
+        border-color: #409eff;
+        background: rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+  &__trigger {
+    top: 5px;
+    border-color: transparent;
+  }
+}
+
+.el-tag {
+  height: 42px;
+  line-height: 42px;
+  font-size: 16px;
+  color: #fff;
+  transition: border-color 0.2s;
+  cursor: pointer;
+  &--light {
+    padding: 0 38px;
+    background-color: transparent;
+    border-color: #1acbfe;
+    &:hover {
+      border-color: #fff;
+    }
+  }
+  &.active {
+    border-color: #fff;
+    background-color: #0b2d77;
+  }
+  img {
+    height: 30px;
+    transform: translate(0, 5px);
+  }
+  & + .el-tag {
+    margin-left: 15px;
+  }
+  &--dark {
+    background-color: rgba(25, 90, 252, 0.6);
+    border-color: rgba(25, 90, 252, 0.6);
+  }
+}
