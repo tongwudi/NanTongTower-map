@@ -61,7 +61,7 @@ import { getShipName } from '@/api/index'
 import {
   initMap,
   renderArea,
-  changeForbidden,
+  destroyForbiddenLayer,
   renderPoints,
   timestampToTime
 } from '@/utils/map'
@@ -74,7 +74,7 @@ export default {
   data() {
     return {
       socket: null,
-      WSPATH: `${process.env.VUE_APP_WS}ID=9999`,
+      WSPATH: `${process.env.VUE_APP_WS}/ID=9999`,
       showWSModal: false,
       styles: {},
       featureInfo: {},
@@ -132,7 +132,7 @@ export default {
     renderArea()
     this.initWebSocket()
 
-    // http://localhost:8080/#/?lot=12&lat=15?lot=12&lat=15
+    // http://localhost:8080/#/?lot=12&lat=15
     const params = this.$route.query
     if (params.lot && params.lat) {
       this.showCamera = true
@@ -173,7 +173,7 @@ export default {
       console.log('socket已经关闭')
     },
     changeForbidden(isHide) {
-      changeForbidden(isHide)
+      destroyForbiddenLayer(isHide)
     }
   }
 }
@@ -200,7 +200,6 @@ export default {
   }
 }
 .camera-dialog {
-  width: 1000px;
   padding: 20px 45px;
   background-image: url('@/assets/image/camera-bg.png');
   color: #fff;

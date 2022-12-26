@@ -11,7 +11,7 @@ export const getByRegion = () =>
 
 // 保存绘制区域
 export const saveArea = (data) =>
-  request.post('/api/alarmInfo/areaSave', { data })
+  request.post('/api/alarmInfo/areaSave', data)
 
 // 获取船名
 export const getShipName = (params) =>

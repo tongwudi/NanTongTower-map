@@ -72,9 +72,8 @@ export const initMap = (target) => {
  */
 let forbiddenLayer = null
 export const renderArea = () => {
-  const vectorSource = new VectorSource()
+  const vectorSource = new VectorSource({ wrapX: false })
   forbiddenLayer = new VectorLayer({
-    // zIndex: 1,
     source: vectorSource // ① 第一种方式
     // source: new VectorSource() // ② 第二种方式
   })
@@ -111,22 +110,27 @@ export const renderArea = () => {
 }
 
 /**
- * 切换禁区渲染与销毁
+ * 禁区图层渲染与销毁
  * @param {Boolean} isHide 是否显示
  */
-export const changeForbidden = (isHide) => {
+export const destroyForbiddenLayer = (isHide) => {
   isHide ? map.removeLayer(forbiddenLayer) : map.addLayer(forbiddenLayer)
 }
 
 /**
- * 初始化绘制图层
+ * 渲染绘制图层
  * @constant drawLayer 绘制图层
+ * @constant drawFeatures 本地图形要素信息，定位时需要
+ * @param {[]} arr 图形要素信息集合
  */
 let drawLayer = null
-export const initDraw = () => {
+let drawFeatures = []
+export const renderDrawFeature = (arr) => {
+  drawLayer && map.removeLayer(drawLayer)
+
+  const vectorSource = new VectorSource({ wrapX: false })
   drawLayer = new VectorLayer({
-    // zIndex: 1,
-    source: new VectorSource(),
+    source: vectorSource,
     // 图形绘制完成样式
     style: new Style({
       // 笔触样式
@@ -141,37 +145,36 @@ export const initDraw = () => {
     })
   })
   map.addLayer(drawLayer)
+
+  drawFeatures = []
+  let featureTemp = null
+  arr.forEach((item) => {
+    featureTemp = generateDrawFeature(item)
+    drawFeatures.push(featureTemp)
+  })
+  vectorSource.addFeatures(drawFeatures)
 }
 
 /**
- * 渲染图形要素
- * @param {{}} item 图形要素信息集合
+ * 绘制图层渲染与销毁
+ * @param {Boolean} isHide 是否显示
  */
-export const renderDrawFeature = (arr) => {
-  // 清除本地图形要素
-  let features = []
-  // 清除图层所有图形要素
-  drawLayer.getSource().clear()
+export const destroyDrawLayer = (isHide) => {
+  isHide ? map.removeLayer(drawLayer) : map.addLayer(drawLayer)
+}
 
-  const points = arr.reduce((cur, item) => {
-    const areaScope = JSON.parse(item.areaScope)
-    const curItem = areaScope.map((v) => {
-      const { longitude, latitude } = v
-      return [longitude, latitude]
-    })
-    cur.push({
-      ...item,
-      areaScope: item.areaScopeType === 1 ? curItem : curItem[0]
-    })
-    return cur
-  }, [])
-
-  let featureTemp = null
-  points.forEach((item) => {
-    featureTemp = generateDrawFeature(item)
-    features.push(featureTemp)
+/**
+ * 定位到图形要素
+ * @param {number} idx 数据索引
+ */
+export const positionFeature = (idx) => {
+  // 获取地图视图 view
+  var view = map.getView()
+  var extent = drawFeatures[idx].getGeometry().getExtent()
+  // 定位范围
+  view.fit(extent, {
+    duration: 1200 // 动画的持续时间
   })
-  drawLayer.getSource().addFeatures(features)
 }
 
 /**
@@ -216,7 +219,7 @@ const generateDrawFeature = (item) => {
       }),
       text: new Text({
         text: item.areaName,
-        font: 'normal 12px 微软雅黑',
+        font: 'normal 14px 微软雅黑',
         fill: new Fill({
           color: '#000'
         })
@@ -228,7 +231,7 @@ const generateDrawFeature = (item) => {
 
 /**
  * 绘制图形
- * @constant interaction 绘制工具
+ * @constant interaction 交互对象
  * @constant featureTemp 当前绘制对象
  * @param {String} type 图形类型
  * @method drawstart 绘制前事件
@@ -296,9 +299,9 @@ export const drawGraph = (type, callback) => {
  * 清除交互对象
  */
 export const removeInteraction = () => {
-  // 清除已绘制对象
+  // 清除绘制对象
   drawLayer.getSource().removeFeature(featureTemp)
-  // 关闭绘制功能
+  // 清除交互对象
   if (interaction != undefined && interaction != null) {
     map.removeInteraction(interaction)
   }
@@ -308,9 +311,15 @@ export const removeInteraction = () => {
  * 渲染点位数据
  * @param {[]} points 点位集合
  */
-let pointLayer = []
+let pointLayer = null
 export const renderPoints = (points) => {
   pointLayer && map.removeLayer(pointLayer)
+
+  const vectorSource = new VectorSource({ wrapX: false })
+  pointLayer = new VectorLayer({
+    source: vectorSource
+  })
+  map.addLayer(pointLayer)
 
   let features = []
   points.forEach((item) => {
@@ -333,21 +342,22 @@ export const renderPoints = (points) => {
     )
     features.push(feature)
   })
-  pointLayer = new VectorLayer({
-    source: new VectorSource({
-      features: features
-    })
-  })
-  map.addLayer(pointLayer)
+  vectorSource.addFeatures(features)
 }
 
 /**
  * 渲染鹰觉点位数据
  * @param {[]} points 点位集合
  */
-let yjVectorLayer = []
+let yjVectorLayer = null
 export const renderYjPoints = (points) => {
   yjVectorLayer && map.removeLayer(yjVectorLayer)
+
+  const vectorSource = new VectorSource({ wrapX: false })
+  yjVectorLayer = new VectorLayer({
+    source: vectorSource
+  })
+  map.addLayer(yjVectorLayer)
 
   let features = []
   points.forEach((item) => {
@@ -377,12 +387,7 @@ export const renderYjPoints = (points) => {
     )
     features.push(feature)
   })
-  yjVectorLayer = new VectorLayer({
-    source: new VectorSource({
-      features: features
-    })
-  })
-  map.addLayer(yjVectorLayer)
+  vectorSource.addFeatures(features)
 }
 
 // 时间戳转换为时间

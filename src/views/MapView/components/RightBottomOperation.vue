@@ -24,13 +24,19 @@
           >新增
         </el-button>
         <div class="hide-all-area">
-          <el-checkbox v-model="hideAll">隐藏所有区域</el-checkbox>
+          <el-checkbox @change="hideAllArea">隐藏所有区域</el-checkbox>
         </div>
       </el-row>
       <div class="dialog-table">
         <el-table :data="tableData" @selection-change="handleSelectionChange">
           <el-table-column type="selection" align="center" width="60px" />
-          <el-table-column prop="areaName" label="名称" align="center" />
+          <el-table-column label="名称" align="center">
+            <template slot-scope="{ $index, row }">
+              <el-link :underline="false" @click="positionClick($index)">
+                {{ row.areaName }}
+              </el-link>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" align="center" width="110px">
             <template slot-scope="{ row }">
               <el-button size="mini" type="danger" @click="handleDelete(row)">
@@ -43,16 +49,16 @@
       <div class="pagination">
         <a
           href="javascript:;"
+          class="fl"
           v-if="pagination.pageNum > 1"
           @click="prevPage"
-          class="fl"
         >
           上一页
         </a>
         <a
           href="javascript:;"
-          v-if="pagination.pageNum < pagination.pager"
           class="fr"
+          v-if="pagination.pageNum < pagination.pager"
           @click="nextPage"
         >
           下一页
@@ -65,7 +71,7 @@
       className="add-dialog"
       title="新增"
       :visible.sync="showAddArea"
-      @close="cancel"
+      @close="reset"
     >
       <el-form ref="form" :model="form" :rules="rules" label-width="auto">
         <el-form-item label="区域名称" prop="areaName">
@@ -153,7 +159,7 @@
         <div class="divider"></div>
         <el-form-item label-width="0" style="text-align: center">
           <el-button type="primary" size="medium" @click="save">保存</el-button>
-          <el-button type="info" size="medium" @click="cancel">取消</el-button>
+          <el-button type="info" size="medium" @click="reset">取消</el-button>
         </el-form-item>
       </el-form>
     </m-dialog>
@@ -167,8 +173,9 @@
 import alarmDialog from './AlarmDialog.vue'
 import { getPage, getByRegion, saveArea } from '@/api/index'
 import {
-  initDraw,
   renderDrawFeature,
+  destroyDrawLayer,
+  positionFeature,
   drawGraph,
   removeInteraction,
   renderYjPoints
@@ -188,24 +195,12 @@ export default {
     }
     return {
       showAlarmModule: false,
-      tableData: [
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' }
-      ],
+      tableData: [],
       pagination: {
         pageNum: 1,
         pageSize: 10,
         pager: 0
       },
-      hideAll: false,
       showAddArea: false,
       form: {
         areaOutsideColor: '#445DA7',
@@ -237,12 +232,16 @@ export default {
     }
   },
   mounted() {
-    this.getAreaPage()
     this.getYJRegion()
   },
   methods: {
     alarmRegionClick() {
+      let data = {}
+      data.type = '关闭大屏UI'
+      this.$parent.socket.send(JSON.stringify(data))
+
       this.showAlarmModule = true
+      this.getAreaPage()
     },
     async getAreaPage() {
       const { pageNum, pageSize } = this.pagination
@@ -250,16 +249,34 @@ export default {
       const { data } = await getPage('/api/alarmInfo/areaList', params)
       this.pagination.pager = Math.ceil(data.total / pageSize)
       this.tableData = data.list
-      initDraw()
-      renderDrawFeature(data.list)
+
+      const points = data.list.reduce((cur, item) => {
+        const areaScope = JSON.parse(item.areaScope)
+        const curItem = areaScope.map((v) => {
+          const { longitude, latitude } = v
+          return [longitude, latitude]
+        })
+        cur.push({
+          ...item,
+          areaScope: item.areaScopeType === 1 ? curItem : curItem[0]
+        })
+        return cur
+      }, [])
+      renderDrawFeature(points)
     },
     prevPage() {
-      this.pagination.pageNum++
+      this.pagination.pageNum--
       this.getAreaPage()
     },
     nextPage() {
-      this.pagination.pageNum--
+      this.pagination.pageNum++
       this.getAreaPage()
+    },
+    hideAllArea(val) {
+      destroyDrawLayer(val)
+    },
+    positionClick(idx) {
+      positionFeature(idx)
     },
     handleSelectionChange() {},
     handleDelete(row) {},
@@ -291,7 +308,7 @@ export default {
       })
     },
     save() {
-      this.$refs['form'].validate(async (valid) => {
+      this.$refs['form'].validate((valid) => {
         if (valid) {
           const { areaScope, radius } = this
           const params = {
@@ -299,14 +316,14 @@ export default {
             areaScope: JSON.stringify(areaScope),
             radius
           }
-          const res = await saveArea(params)
-          console.log('save', res)
-          this.cancel()
-          this.getAreaPage()
+          saveArea(params).then((res) => {
+            this.reset()
+            this.getAreaPage()
+          })
         }
       })
     },
-    cancel() {
+    reset() {
       removeInteraction()
       this.shapeType = ''
       if (this.$refs.form) {

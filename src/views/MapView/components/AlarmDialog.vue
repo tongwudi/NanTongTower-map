@@ -32,13 +32,19 @@
       </el-table>
     </div>
     <div class="pagination">
-      <a href="javascript:;" v-if="pagination.pageNum > 1" class="fl">
+      <a
+        href="javascript:;"
+        class="fl"
+        v-if="pagination.pageNum > 1"
+        @click="prevPage"
+      >
         上一页
       </a>
       <a
         href="javascript:;"
-        v-if="pagination.pageNum < pagination.pager"
         class="fr"
+        v-if="pagination.pageNum < pagination.pager"
+        @click="nextPage"
       >
         下一页
       </a>
@@ -58,6 +64,7 @@ export default {
         pageSize: 5,
         pager: 0
       },
+      url: '',
       alarmTableData: [
         { areaName: 'fd' },
         { areaName: 'fd' },
@@ -69,11 +76,22 @@ export default {
     }
   },
   methods: {
-    async getList(isYj) {
-      const url = isYj ? '/api/alarmInfo/yjPage' : '/api/alarmInfo/page'
+    getList(isYj) {
+      this.url = isYj ? '/api/alarmInfo/yjPage' : '/api/alarmInfo/page'
+      this.getDataList()
+    },
+    prevPage() {
+      this.pagination.pageNum--
+      this.getDataList()
+    },
+    nextPage() {
+      this.pagination.pageNum++
+      this.getDataList()
+    },
+    async getDataList() {
       const { pageNum, pageSize } = this.pagination
       const params = { pageNum, pageSize }
-      const { data } = await getPage(url, params)
+      const { data } = await getPage(this.url, params)
       this.pagination.pager = Math.ceil(data.total / pageSize)
       this.alarmTableData = data.list
     },
