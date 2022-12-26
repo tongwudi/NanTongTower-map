@@ -4,13 +4,13 @@ import { transform, transformExtent, fromLonLat } from 'ol/proj'
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer'
 import { TileImage, Vector as VectorSource } from 'ol/source'
 import { Draw } from 'ol/interaction'
-import { Polygon } from 'ol/geom'
-import { Style, Stroke, Fill, Text } from 'ol/style'
+import { Polygon, Circle, Point } from 'ol/geom'
+import { Style, Stroke, Fill, Text, Icon } from 'ol/style'
 
 import areaData from './areaData'
 
 /**
- * 地图初始化
+ * 初始化地图
  * @constant map 地图对象
  * @param {String} target 元素id
  */
@@ -72,12 +72,15 @@ export const initMap = (target) => {
  */
 let forbiddenLayer = null
 export const renderArea = () => {
-  // const vectorSource = new VectorSource()
+  const vectorSource = new VectorSource()
   forbiddenLayer = new VectorLayer({
     // zIndex: 1,
-    // source: vectorSource // ① 第一种方式
-    source: new VectorSource() // ② 第二种方式
+    source: vectorSource // ① 第一种方式
+    // source: new VectorSource() // ② 第二种方式
   })
+  map.addLayer(forbiddenLayer)
+
+  let features = []
   areaData.forEach((item) => {
     const polygonFeature = new Feature({
       geometry: new Polygon([conversion(item.points)])
@@ -101,10 +104,10 @@ export const renderArea = () => {
         })
       })
     )
-    // vectorSource.addFeature(polygonFeature)
-    forbiddenLayer.getSource().addFeature(polygonFeature)
+    features.push(polygonFeature)
+    // forbiddenLayer.getSource().addFeature(polygonFeature)
   })
-  map.addLayer(forbiddenLayer)
+  vectorSource.addFeatures(features)
 }
 
 /**
@@ -116,13 +119,13 @@ export const changeForbidden = (isHide) => {
 }
 
 /**
- * 绘制图层初始化
+ * 初始化绘制图层
  * @constant drawLayer 绘制图层
  */
 let drawLayer = null
 export const initDraw = () => {
-  // 初始化绘制图层
   drawLayer = new VectorLayer({
+    // zIndex: 1,
     source: new VectorSource(),
     // 图形绘制完成样式
     style: new Style({
@@ -139,6 +142,90 @@ export const initDraw = () => {
   })
   map.addLayer(drawLayer)
 }
+
+/**
+ * 渲染图形要素
+ * @param {{}} item 图形要素信息集合
+ */
+export const renderDrawFeature = (arr) => {
+  // 清除本地图形要素
+  let features = []
+  // 清除图层所有图形要素
+  drawLayer.getSource().clear()
+
+  const points = arr.reduce((cur, item) => {
+    const areaScope = JSON.parse(item.areaScope)
+    const curItem = areaScope.map((v) => {
+      const { longitude, latitude } = v
+      return [longitude, latitude]
+    })
+    cur.push({
+      ...item,
+      areaScope: item.areaScopeType === 1 ? curItem : curItem[0]
+    })
+    return cur
+  }, [])
+
+  let featureTemp = null
+  points.forEach((item) => {
+    featureTemp = generateDrawFeature(item)
+    features.push(featureTemp)
+  })
+  drawLayer.getSource().addFeatures(features)
+}
+
+/**
+ * 生成图形要素
+ * @param {{}} item 图形要素信息
+ */
+const generateDrawFeature = (item) => {
+  let geometry
+  switch (item.areaScopeType) {
+    // 渲染面
+    case 1:
+      const pointsRes = item.areaScope.map((v) => fromLonLat(v))
+      geometry = new Polygon([pointsRes])
+      break
+    // 渲染圆
+    case 2:
+      // 比例尺  单位 米
+      // const metersPerUnit = map.getView().getProjection().getMetersPerUnit()
+      // geometry = new Circle(
+      //   fromLonLat(item.areaScope),
+      //   item.radius / metersPerUnit
+      // )
+      geometry = new Circle(fromLonLat(item.areaScope), item.radius)
+      break
+    // 渲染点
+    default:
+      geometry = new Point(fromLonLat(item.areaScope))
+  }
+  let feature = new Feature({
+    geometry: geometry
+  })
+  // 图形渲染样式
+  feature.setStyle(
+    new Style({
+      stroke: new Stroke({
+        width: 2,
+        lineDash: item.areaOutsideStyle === 'dashed' ? [10, 10, 10, 10] : false,
+        color: hexToRgba(item.areaOutsideColor, item.areaOutsideOpacity)
+      }),
+      fill: new Fill({
+        color: hexToRgba(item.areaInsideColor, item.areaInsideOpacity)
+      }),
+      text: new Text({
+        text: item.areaName,
+        font: 'normal 12px 微软雅黑',
+        fill: new Fill({
+          color: '#000'
+        })
+      })
+    })
+  )
+  return feature
+}
+
 /**
  * 绘制图形
  * @constant interaction 绘制工具
@@ -168,7 +255,6 @@ export const drawGraph = (type, callback) => {
     })
   })
   map.addInteraction(interaction)
-
   // 绘制前清除上一次绘制
   let areaScope = [],
     radius = ''
@@ -180,7 +266,6 @@ export const drawGraph = (type, callback) => {
   // 绘制完成返回绘制数据
   interaction.on('drawend', (e) => {
     featureTemp = e.feature
-
     if (type === 'Polygon') {
       // 获取转折点坐标集合
       const arr = e.feature
@@ -211,22 +296,148 @@ export const drawGraph = (type, callback) => {
  * 清除交互对象
  */
 export const removeInteraction = () => {
+  // 清除已绘制对象
   drawLayer.getSource().removeFeature(featureTemp)
-
+  // 关闭绘制功能
   if (interaction != undefined && interaction != null) {
     map.removeInteraction(interaction)
   }
 }
 
 /**
- * 偏移值转换
- * @param {Array} position 点位信息
- * @returns
+ * 渲染点位数据
+ * @param {[]} points 点位集合
  */
+let pointLayer = []
+export const renderPoints = (points) => {
+  pointLayer && map.removeLayer(pointLayer)
+
+  let features = []
+  points.forEach((item) => {
+    let feature = new Feature({
+      geometry: new Point(
+        fromLonLat([
+          Number(item.longitude) + 0.013,
+          Number(item.latitude) - 0.167
+        ])
+      ),
+      isws_point: item
+    })
+    feature.setStyle(
+      new Style({
+        image: new Icon({
+          scale: 1.2,
+          src: chooseIcon(item.type)
+        })
+      })
+    )
+    features.push(feature)
+  })
+  pointLayer = new VectorLayer({
+    source: new VectorSource({
+      features: features
+    })
+  })
+  map.addLayer(pointLayer)
+}
+
+/**
+ * 渲染鹰觉点位数据
+ * @param {[]} points 点位集合
+ */
+let yjVectorLayer = []
+export const renderYjPoints = (points) => {
+  yjVectorLayer && map.removeLayer(yjVectorLayer)
+
+  let features = []
+  points.forEach((item) => {
+    let feature = new Feature({
+      geometry: new Point(
+        fromLonLat([Number(item.lon) + 0.013, Number(item.lat) - 0.167])
+      ),
+      isws_point: {
+        name: item.name || ' ',
+        length: item.len,
+        course: item.cog,
+        speed: item.sog,
+        latitude: item.lat,
+        longitude: item.lon,
+        state: item.state,
+        timestamp: item.ltm,
+        mmsi: item.mmsi
+      }
+    })
+    feature.setStyle(
+      new Style({
+        image: new Icon({
+          scale: 1.2,
+          src: chooseIcon(item.type)
+        })
+      })
+    )
+    features.push(feature)
+  })
+  yjVectorLayer = new VectorLayer({
+    source: new VectorSource({
+      features: features
+    })
+  })
+  map.addLayer(yjVectorLayer)
+}
+
+// 时间戳转换为时间
+export const timestampToTime = (timestamp) => {
+  timestamp = timestamp ? timestamp : null
+  let date = new Date(timestamp) //时间戳为10位需*1000，时间戳为13位的话不需乘1000
+  let Y = date.getFullYear() + '-'
+  let M =
+    (date.getMonth() + 1 < 10
+      ? '0' + (date.getMonth() + 1)
+      : date.getMonth() + 1) + '-'
+  let D = (date.getDate() < 10 ? '0' + date.getDate() : date.getDate()) + ' '
+  let h = (date.getHours() < 10 ? '0' + date.getHours() : date.getHours()) + ':'
+  let m =
+    (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()) + ':'
+  let s = date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds()
+  return Y + M + D + h + m + s
+}
+
+// 根据点位类型渲染点位图标
+const chooseIcon = (type) => {
+  const obj = {
+    AIS_A: require('../assets/type_ico/aisA_1.bef82bfa.png'),
+    AIS_B: require('../assets/type_ico/aisB_1.fb51160f.png'),
+    SIMULATION: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
+    RADAR: require('../assets/type_ico/radar.2c6e4e03.png'),
+    RADAR_AIS_A: require('../assets/type_ico/aisAR_1.44fb1489.png'),
+    RADAR_AIS_B: require('../assets/type_ico/aisBR_1.8ca96264.png'),
+    RADAR_AIS_A_PRESUMABLE: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
+    RADAR_AIS_B_PRESUMABLE: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
+    BDS: require('../assets/type_ico/BD-1.0d2328f8.png'),
+    GPS: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
+    AID: require('../assets/type_ico/AID.5aa51bd8.png'),
+    RADAR_AID: require('../assets/type_ico/AIDR.19f67404.png'),
+    VAID: require('../assets/type_ico/VAID.a350fe21.png'),
+    RADAR_VAID: require('../assets/type_ico/VAIDR.06a8ef61.png'),
+    duplicate_A: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
+    duplicate_B: require('../assets/type_ico/Unknown-1.6cd8918e.png')
+  }
+  return obj[type] || require('../assets/type_ico/Unknown-1.6cd8918e.png')
+}
+// 偏移值转换
 const conversion = (position) => {
   let cc = []
   position.forEach((item) => {
     cc.push(fromLonLat([Number(item[0]) + 0.013, Number(item[1]) - 0.17]))
   })
   return cc
+}
+// 将hex颜色转成rgb
+const hexToRgba = (hex = '#445DA7', opacity = 50) => {
+  let red = parseInt('0x' + hex.slice(1, 3))
+  let green = parseInt('0x' + hex.slice(3, 5))
+  let blue = parseInt('0x' + hex.slice(5, 7))
+  opacity = opacity * 0.01
+
+  return [red, green, blue, opacity]
 }

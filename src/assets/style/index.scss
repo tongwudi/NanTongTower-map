@@ -15,15 +15,15 @@
   margin-bottom: 20px;
 }
 /* 分页 */
+
 .pagination {
-  // display: none;
   padding: 0 20px;
   overflow: hidden;
-}
-.pagination a {
-  text-decoration: none;
-  color: #fff;
-}
-.pagination a:active {
-  color: rgba(255, 255, 255, 0.8) !important;
+  a {
+    color: #fff;
+    &:hover,
+    &:active {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
 }

@@ -1,8 +1,7 @@
 import request from '@/utils/request'
 
-// 区域列表
-export const getAreaList = (params) =>
-  request.get('/api/alarmInfo/areaList', { params })
+// 列表
+export const getPage = (url, params) => request.get(url, { params })
 
 // 鹰觉点位
 export const getByRegion = () =>
@@ -13,3 +12,9 @@ export const getByRegion = () =>
 // 保存绘制区域
 export const saveArea = (data) =>
   request.post('/api/alarmInfo/areaSave', { data })
+
+// 获取船名
+export const getShipName = (params) =>
+  request.get('http://cjyp.js.uniseas.com.cn:11080/api/target/ais/info', {
+    params
+  })

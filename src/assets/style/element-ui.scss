@@ -1,5 +1,30 @@
-.el-button--mini {
-  padding: 5px 13px;
+.el-button {
+  &--mini {
+    padding: 5px 13px;
+  }
+  &--primary {
+    border-color: #007bff;
+    background-color: #007bff;
+  }
+  &--primary.is-plain {
+    border-color: #1acbfe;
+    background-color: transparent;
+    color: #fff;
+    &:focus,
+    &:hover {
+      color: #fff;
+      background: rgba(0, 0, 0, 0.2);
+    }
+  }
+  &--info {
+    border-color: #99a3ae;
+    background-color: #99a3ae;
+    color: #293038;
+    &:focus,
+    &:hover {
+      color: #293038;
+    }
+  }
 }
 
 .el-checkbox {
@@ -64,25 +89,23 @@
 .el-input {
   font-size: 16px;
   &__inner {
-    height: 42px;
-    line-height: 42px;
-    background-color: transparent;
     border-color: #1acbfe;
+    background-color: transparent;
     color: #fff;
   }
 }
 .el-input.is-disabled .el-input__inner,
 .el-input-number__decrease,
 .el-input-number__increase {
-  background-color: transparent;
   border-color: #1acbfe !important;
+  background-color: transparent;
   color: #fff;
 }
 
 .el-color-picker {
   &__panel {
-    background-color: #05193d;
     border-color: #0e52d8;
+    background-color: #05193d;
     .el-button {
       padding: 0 6px;
       font-size: 16px;
@@ -96,7 +119,7 @@
       &:focus,
       &:hover {
         border-color: #409eff;
-        background: rgba(0, 0, 0, 0.2);
+        background-color: rgba(0, 0, 0, 0.2);
       }
     }
   }
@@ -107,16 +130,17 @@
 }
 
 .el-tag {
-  height: 42px;
-  line-height: 42px;
+  height: 40px;
+  line-height: 40px;
   font-size: 16px;
   color: #fff;
   transition: border-color 0.2s;
   cursor: pointer;
   &--light {
-    padding: 0 38px;
-    background-color: transparent;
+    width: 100px;
+    text-align: center;
     border-color: #1acbfe;
+    background-color: transparent;
     &:hover {
       border-color: #fff;
     }
@@ -127,13 +151,13 @@
   }
   img {
     height: 30px;
-    transform: translate(0, 5px);
+    transform: translate(0, 4px);
   }
   & + .el-tag {
     margin-left: 15px;
   }
   &--dark {
-    background-color: rgba(25, 90, 252, 0.6);
     border-color: rgba(25, 90, 252, 0.6);
+    background-color: rgba(25, 90, 252, 0.6);
   }
 }

@@ -18,7 +18,6 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (res) => {
     const { status, data } = res
-
     return status === 200 ? Promise.resolve(data) : Promise.reject(res)
   },
   (error) => {

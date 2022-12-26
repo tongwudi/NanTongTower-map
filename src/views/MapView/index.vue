@@ -2,16 +2,69 @@
   <div id="map">
     <LeftBottomOperation @changeForbidden="changeForbidden" />
     <RightBottomOperation />
+
+    <ul class="ws-modal" :style="styles" v-show="showWSModal">
+      <li>
+        <span>船名：</span><span>{{ featureInfo.name }}</span>
+      </li>
+      <li>
+        <span>船长：</span><span>{{ featureInfo.length }}米</span>
+      </li>
+      <li>
+        <span>航向：</span><span>{{ featureInfo.course }}</span>
+      </li>
+      <li>
+        <span>航速：</span><span>{{ featureInfo.speed }}</span>
+      </li>
+      <li>
+        <span>经度：</span><span>{{ featureInfo.longitude }}</span>
+      </li>
+      <li>
+        <span>纬度：</span><span>{{ featureInfo.latitude }}</span>
+      </li>
+      <li>
+        <span>状态：</span><span>{{ featureInfo.state | filterState }}</span>
+      </li>
+      <li>
+        <span>时间：</span><span>{{ featureInfo.timestamp | fommatDate }}</span>
+      </li>
+      <li>
+        <span>mmsi：</span><span>{{ featureInfo.mmsi }}</span>
+      </li>
+    </ul>
+
+    <!-- 弹框-摄像 -->
+    <m-dialog className="camera-dialog" title="报警" :visible.sync="showCamera">
+      <div class="left fl">
+        <div class="box box1"></div>
+        <div class="box box2"></div>
+        <div class="box box3"></div>
+      </div>
+      <div class="right fl">
+        <ul>
+          <li><span>报警内容：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
+          <li><span>报警时间：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
+          <li><span>报警类型：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
+          <li><span>经度：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
+          <li><span>纬度：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
+        </ul>
+        <div class="box box4"></div>
+      </div>
+    </m-dialog>
   </div>
 </template>
 
 <script>
-import { initMap, renderArea, changeForbidden } from '@/utils/map'
-
-// import coordinateTransform from '../utils/CoordinateTransform.js'
-
 import LeftBottomOperation from './components/LeftBottomOperation'
 import RightBottomOperation from './components/RightBottomOperation'
+import { getShipName } from '@/api/index'
+import {
+  initMap,
+  renderArea,
+  changeForbidden,
+  renderPoints,
+  timestampToTime
+} from '@/utils/map'
 
 export default {
   components: {
@@ -20,151 +73,184 @@ export default {
   },
   data() {
     return {
-      map: null
-      // forbiddenData: []
+      socket: null,
+      WSPATH: `${process.env.VUE_APP_WS}ID=9999`,
+      showWSModal: false,
+      styles: {},
+      featureInfo: {},
+      showCamera: false
     }
   },
-  provide() {
-    return {
-      getMap: () => this.map
+  filters: {
+    filterState(val) {
+      let str = ''
+      switch (val) {
+        case 1:
+          str = '正常'
+          break
+        case 2:
+          str = '预测'
+          break
+        default:
+          str = '丢失'
+      }
+      return str
+    },
+    fommatDate(val) {
+      return timestampToTime(val)
     }
   },
   mounted() {
-    // this.initMap()
     this.map = initMap('map')
+    this.map.on('singleclick', (e) => {
+      let feature = this.map.forEachFeatureAtPixel(
+        e.pixel,
+        (feature) => feature
+      )
+      if (feature && feature.values_.isws_point) {
+        const featureInfo = { ...feature.values_.isws_point }
+        if (!featureInfo.name) {
+          const params = {
+            targetId: featureInfo.targetId,
+            mmsi: featureInfo.mmsi
+          }
+          getShipName(params).then((res) => {
+            if (res.code === 0) {
+              featureInfo.name = res.data.vesselName
+              this.featureInfo = featureInfo
+            }
+          })
+        }
+        const pixel = this.map.getEventPixel(e.originalEvent)
+        this.styles.left = pixel[0] + 'px'
+        this.styles.top = pixel[1] + 'px'
+        this.showWSModal = true
+      } else {
+        this.showWSModal = false
+      }
+    })
     renderArea()
-    // this.renderArea()
+    this.initWebSocket()
+
+    // http://localhost:8080/#/?lot=12&lat=15?lot=12&lat=15
+    const params = this.$route.query
+    if (params.lot && params.lat) {
+      this.showCamera = true
+    }
+  },
+  destroyed() {
+    this.socket && (this.socket.onclose = this.close)
   },
   methods: {
-    // initMap() {
-    //   // 计算百度地图使用的分辨率
-    //   const baiduResolutions = []
-    //   for (let i = 0; i <= 18; i++) {
-    //     baiduResolutions[i] = Math.pow(2, 18 - i)
-    //   }
-    //   // 自定义瓦片坐标系
-    //   const tilegrid = new TileGrid({
-    //     origin: [0, 0], // 设置原点坐标
-    //     resolutions: baiduResolutions // 设置分辨率
-    //   })
-    //   // 创建百度地图的数据源
-    //   const baiduSource = new TileImage({
-    //     tileGrid: tilegrid,
-    //     tileUrlFunction: (tileCoord, pixelRatio, proj) => {
-    //       let [z, x, y] = tileCoord
-
-    //       if (x < 0) {
-    //         x = -x
-    //       }
-    //       if (y < 0) {
-    //         y = -y - 1 // ol6版本需要此处减一，否则缩放有偏移
-    //       }
-    //       return 'tiles/' + z + '/' + x + '/' + y + '.png'
-    //     }
-    //   })
-
-    //   // 初始化地图
-    //   this.map = new Map({
-    //     layers: [
-    //       new TileLayer({
-    //         source: baiduSource
-    //       })
-    //     ],
-    //     view: new View({
-    //       center: transform([120.8573, 31.8209], 'EPSG:4326', 'EPSG:3857'),
-    //       extent: transformExtent(
-    //         [
-    //           118.69615846707765, 30.802104732318227, 122.80072753482629,
-    //           32.76432917126385
-    //         ],
-    //         'EPSG:4326',
-    //         'EPSG:3857'
-    //       ),
-    //       maxZoom: 14,
-    //       zoom: 13 // 默认缩放级别
-    //     }),
-    //     target: 'map'
-    //   })
-
-    //   // this.map.on('pointerdrag', (e) => {
-    //   //   const aa = this.map.getView().calculateExtent(this.map.getSize())
-    //   //   // [13124506.972484231, 3560737.480626435, 13747717.963889513, 3864877.4279945334]
-    //   //   // 13231349.26663091, 3607044.8908512387, 13688261.30705852, 3864057.9135917695
-    //   //   // console.log(aa)
-    //   //   // console.log(
-    //   //   //   coordinateTransform.GCJ2BD(13688261.30705852, 3864057.9135917695)
-    //   //   // )
-    //   //   console.log(
-    //   //     transform(
-    //   //       [13688259.535219695, 3864064.2192280227],
-    //   //       'EPSG:3857',
-    //   //       'EPSG:4326'
-    //   //     )
-    //   //   )
-    //   // })
+    initWebSocket() {
+      if (typeof WebSocket === 'undefined') {
+        alert('您的浏览器不支持socket')
+      } else {
+        // 实例化socket
+        this.socket = new WebSocket(this.WSPATH)
+        // 监听socket连接
+        this.socket.onopen = this.open
+        // 监听socket错误信息
+        this.socket.onerror = this.error
+        // 监听socket消息
+        this.socket.onmessage = this.getMessage
+      }
+    },
+    open() {
+      console.log('socket连接成功')
+    },
+    error() {
+      console.log('连接错误')
+    },
+    getMessage(msg) {
+      const points = JSON.parse(msg.data)
+      renderPoints(points)
+    },
+    // send(params) {
+    //   this.socket.send(params)
     // },
-    // renderArea() {
-    //   areaData.forEach((item, i) => {
-    //     // 渲染面
-    //     let polygon = new Polygon([this.conversion(item.points)])
-    //     let polygonFeature = new Feature({
-    //       geometry: polygon
-    //     })
-    //     polygonFeature.setStyle(
-    //       new Style({
-    //         stroke: new Stroke({
-    //           width: 2,
-    //           lineDash: [10, 10, 10, 10], // 重点在这
-    //           color: [255, 255, 0, 0.4]
-    //         }),
-    //         fill: new Fill({
-    //           color: [248, 172, 166, 0.11]
-    //         }),
-    //         text: new Text({
-    //           text: item.name,
-    //           color: '#fff',
-    //           font: 'normal 10px 微软雅黑',
-    //           fill: new Fill({
-    //             color: '#ccc'
-    //           })
-    //         })
-    //       })
-    //     )
-    //     let vectorSource = new SourceVector()
-    //     vectorSource.addFeature(polygonFeature)
-
-    //     this.forbiddenData[i] = new LayerVector({
-    //       source: vectorSource,
-    //       zIndex: 1
-    //     })
-    //     this.map.addLayer(this.forbiddenData[i])
-    //   })
-    // },
-    // conversion(position) {
-    //   let cc = []
-    //   position.forEach((item) => {
-    //     cc.push(fromLonLat([Number(item[0]) + 0.013, Number(item[1]) - 0.17]))
-    //   })
-    //   return cc
-    // },
+    close() {
+      console.log('socket已经关闭')
+    },
     changeForbidden(isHide) {
       changeForbidden(isHide)
-      // this.forbiddenData.forEach((item) => {
-      //   if (isHide) {
-      //     this.map.removeLayer(item)
-      //   } else {
-      //     this.map.addLayer(item)
-      //   }
-      // })
     }
   }
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 #map {
   width: 100%;
   height: 100%;
   position: relative;
+}
+.ws-modal {
+  position: fixed;
+  width: fit-content;
+  max-width: 350px;
+  height: fit-content;
+  padding: 8px 10px;
+  color: white;
+  font-size: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 4;
+  li {
+    padding: 5px;
+  }
+}
+.camera-dialog {
+  width: 1000px;
+  padding: 20px 45px;
+  background-image: url('@/assets/image/camera-bg.png');
+  color: #fff;
+  z-index: 4;
+  :deep(.dialog-body) {
+    overflow: hidden;
+    padding-bottom: 30px;
+  }
+  .box {
+    background-color: #043464;
+  }
+  .left {
+    width: 610px;
+    margin-right: 20px;
+  }
+  .box1 {
+    width: 100%;
+    height: 300px;
+  }
+  .box2 {
+    margin-right: 10px;
+  }
+  .box2,
+  .box3 {
+    display: inline-block;
+    margin-top: 10px;
+    width: 300px;
+    height: 200px;
+  }
+  .right {
+    display: flex;
+    flex-direction: column;
+  }
+  .box4 {
+    width: 300px;
+    height: 300px;
+  }
+  ul {
+    flex: 1;
+    margin-bottom: 15px;
+  }
+  li {
+    margin: 15px 0;
+    span {
+      display: inline-block;
+      &:first-child {
+        width: 5em;
+        text-align: right;
+      }
+    }
+  }
 }
 </style>

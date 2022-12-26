@@ -18,15 +18,16 @@
 <script>
 export default {
   props: {
+    className: {
+      type: String,
+      default: '',
+      require: true
+    },
     visible: {
       type: Boolean,
       default: false
     },
     title: {
-      type: String,
-      default: ''
-    },
-    className: {
       type: String,
       default: ''
     }

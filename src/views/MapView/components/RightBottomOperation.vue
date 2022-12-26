@@ -1,24 +1,27 @@
 <template>
   <div class="section">
     <span class="click-active alarm-region" @click="alarmRegionClick"></span>
-    <span class="click-active alarm-icon1" @click="alarmClick"></span>
-    <span class="click-active alarm-icon2"></span>
+    <span class="click-active alarm-icon1" @click="alarmClick(false)"></span>
+    <span class="click-active alarm-icon2" @click="alarmClick(true)"></span>
 
     <!-- 弹框-报警模块 -->
     <m-dialog
       className="region-dialog"
       title="报警模块"
-      :visible.sync="alarmModuleShow"
+      :visible.sync="showAlarmModule"
     >
       <el-row
         type="flex"
-        align="center"
+        align="middle"
         justify="space-between"
         class="dialog-operation"
       >
-        <el-button type="primary" plain @click="addAreaClick">
-          <i class="icon-add"></i>
-          <span>新增</span>
+        <el-button
+          type="primary"
+          plain
+          icon="el-icon-circle-plus-outline"
+          @click="addAreaClick"
+          >新增
         </el-button>
         <div class="hide-all-area">
           <el-checkbox v-model="hideAll">隐藏所有区域</el-checkbox>
@@ -38,8 +41,22 @@
         </el-table>
       </div>
       <div class="pagination">
-        <a href="javascript:;" class="fl">上一页</a>
-        <a href="javascript:;" class="fr">下一页</a>
+        <a
+          href="javascript:;"
+          v-if="pagination.pageNum > 1"
+          @click="prevPage"
+          class="fl"
+        >
+          上一页
+        </a>
+        <a
+          href="javascript:;"
+          v-if="pagination.pageNum < pagination.pager"
+          class="fr"
+          @click="nextPage"
+        >
+          下一页
+        </a>
       </div>
     </m-dialog>
 
@@ -47,7 +64,7 @@
     <m-dialog
       className="add-dialog"
       title="新增"
-      :visible.sync="addAreaShow"
+      :visible.sync="showAddArea"
       @close="cancel"
     >
       <el-form ref="form" :model="form" :rules="rules" label-width="auto">
@@ -75,12 +92,12 @@
         <div class="divider"></div>
         <el-row :gutter="20">
           <el-col :span="13">
-            <el-form-item label="边框颜色" prop="borderColorText">
-              <el-input v-model="form.borderColorText" disabled>
+            <el-form-item label="边框颜色" prop="areaOutsideColor">
+              <el-input v-model="form.areaOutsideColor" disabled>
                 <el-color-picker
                   slot="suffix"
                   size="small"
-                  v-model="form.borderColorText"
+                  v-model="form.areaOutsideColor"
                 />
               </el-input>
             </el-form-item>
@@ -110,12 +127,12 @@
         </el-form-item>
         <el-row :gutter="20">
           <el-col :span="13">
-            <el-form-item label="填充颜色" prop="fillColorText">
-              <el-input v-model="form.fillColorText" disabled>
+            <el-form-item label="填充颜色" prop="areaInsideColor">
+              <el-input v-model="form.areaInsideColor" disabled>
                 <el-color-picker
                   slot="suffix"
                   size="small"
-                  v-model="form.fillColorText"
+                  v-model="form.areaInsideColor"
                 />
               </el-input>
             </el-form-item>
@@ -135,25 +152,30 @@
         </el-row>
         <div class="divider"></div>
         <el-form-item label-width="0" style="text-align: center">
-          <el-button type="primary" @click="save('form')">保存</el-button>
-          <el-button type="info" @click="cancel">取消</el-button>
+          <el-button type="primary" size="medium" @click="save">保存</el-button>
+          <el-button type="info" size="medium" @click="cancel">取消</el-button>
         </el-form-item>
       </el-form>
     </m-dialog>
 
     <!-- 弹框-报警列表 -->
-    <AlarmDialog :visible.sync="alarmShow" />
+    <alarm-dialog ref="alarmDialog" :visible.sync="showAlarm" />
   </div>
 </template>
 
 <script>
-import mDialog from '@/components/m-dialog.vue'
-import AlarmDialog from './AlarmDialog.vue'
-import { initDraw, drawGraph, removeInteraction } from '@/utils/map'
-import { getAreaList, getByRegion, saveArea } from '@/api/index'
+import alarmDialog from './AlarmDialog.vue'
+import { getPage, getByRegion, saveArea } from '@/api/index'
+import {
+  initDraw,
+  renderDrawFeature,
+  drawGraph,
+  removeInteraction,
+  renderYjPoints
+} from '@/utils/map'
 
 export default {
-  components: { mDialog, AlarmDialog },
+  components: { alarmDialog },
   data() {
     var validAreaScopeType = (rule, value, callback) => {
       if (!value) {
@@ -165,7 +187,7 @@ export default {
       }
     }
     return {
-      alarmModuleShow: false,
+      showAlarmModule: false,
       tableData: [
         { areaName: 'fd' },
         { areaName: 'fd' },
@@ -180,16 +202,16 @@ export default {
       ],
       pagination: {
         pageNum: 1,
-        pageSize: 5,
+        pageSize: 10,
         pager: 0
       },
       hideAll: false,
-      addAreaShow: false,
+      showAddArea: false,
       form: {
-        borderColorText: '#445DA7',
+        areaOutsideColor: '#445DA7',
         areaOutsideOpacity: 100,
         areaOutsideStyle: 'solid',
-        fillColorText: '#445DA7',
+        areaInsideColor: '#445DA7',
         areaInsideOpacity: 100
       },
       rules: {
@@ -197,10 +219,10 @@ export default {
           { required: true, message: '请输入区域名称', trigger: 'blur' }
         ],
         areaScopeType: [{ validator: validAreaScopeType, trigger: 'blur' }],
-        borderColorText: [
+        areaOutsideColor: [
           { required: true, message: '请选择边框颜色', trigger: 'blur' }
         ],
-        fillColorText: [
+        areaInsideColor: [
           { required: true, message: '请选择填充颜色', trigger: 'blur' }
         ]
       },
@@ -211,39 +233,50 @@ export default {
       shapeType: '',
       areaScope: [],
       radius: '',
-      alarmShow: false
+      showAlarm: false
     }
   },
   mounted() {
-    // this.getAreaPage()
-    // this.getYJRegion()
+    this.getAreaPage()
+    this.getYJRegion()
   },
   methods: {
     alarmRegionClick() {
-      this.alarmModuleShow = true
+      this.showAlarmModule = true
     },
     async getAreaPage() {
       const { pageNum, pageSize } = this.pagination
-      const res = await getAreaList({ pageNum, pageSize })
+      const params = { pageNum, pageSize }
+      const { data } = await getPage('/api/alarmInfo/areaList', params)
+      this.pagination.pager = Math.ceil(data.total / pageSize)
+      this.tableData = data.list
+      initDraw()
+      renderDrawFeature(data.list)
+    },
+    prevPage() {
+      this.pagination.pageNum++
+      this.getAreaPage()
+    },
+    nextPage() {
+      this.pagination.pageNum--
+      this.getAreaPage()
     },
     handleSelectionChange() {},
     handleDelete(row) {},
     addAreaClick() {
-      this.addAreaShow = true
-      initDraw()
+      this.showAddArea = true
     },
     changeShape(type) {
       this.shapeType = type
       this.draw(type)
     },
-    
     async getYJRegion() {
-      const res = await getByRegion()
-      console.log(res)
+      const { result } = await getByRegion()
+      const points = result.targets
+      renderYjPoints(points)
     },
     draw(type) {
       this.$set(this.form, 'areaScopeType', type === 'Polygon' ? 1 : 2)
-
       removeInteraction()
 
       drawGraph(type, (res) => {
@@ -257,11 +290,10 @@ export default {
         this.radius = radius
       })
     },
-    save(formName) {
-      this.$refs[formName].validate(async (valid) => {
+    save() {
+      this.$refs['form'].validate(async (valid) => {
         if (valid) {
           const { areaScope, radius } = this
-
           const params = {
             ...this.form,
             areaScope: JSON.stringify(areaScope),
@@ -270,20 +302,20 @@ export default {
           const res = await saveArea(params)
           console.log('save', res)
           this.cancel()
+          this.getAreaPage()
         }
       })
     },
     cancel() {
       removeInteraction()
-
       this.shapeType = ''
-
       if (this.$refs.form) {
         this.$refs.form.resetFields()
       }
     },
-    alarmClick() {
-      this.alarmShow = true
+    async alarmClick(isYj) {
+      this.showAlarm = true
+      this.$refs.alarmDialog.getList(isYj)
     }
   }
 }
@@ -344,47 +376,15 @@ export default {
 
 /* 按钮样式 */
 .el-button {
-  i {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    margin-right: 10px;
-    background-image: url('@/assets/image/icon-add.png');
-    background-size: 100% 100%;
-    vertical-align: text-bottom;
+  :deep(i) {
+    font-size: 18px;
+    color: #1acbfe;
+    vertical-align: bottom;
   }
   // 功能按钮
   &--primary.is-plain {
-    height: 32px;
-    padding: 0 12px;
+    padding: 10px 16px;
     font-size: 16px;
-    border-color: #1acbfe;
-    background-color: transparent;
-    color: #fff;
-    &:focus,
-    &:hover {
-      color: #fff;
-      background: rgba(0, 0, 0, 0.2);
-    }
-  }
-  // 保存
-  &--primary {
-    height: 32px;
-    padding: 0 17px;
-    border-radius: 2px;
-    background: #007bff;
-  }
-  // 取消
-  &--info {
-    height: 32px;
-    padding: 0 17px;
-    border-radius: 2px;
-    background: #99a3ae;
-    color: #293038;
-    &:focus,
-    &:hover {
-      color: #293038;
-    }
   }
 }
 </style>
