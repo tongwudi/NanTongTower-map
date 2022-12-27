@@ -2,28 +2,33 @@
   <div class="section">
     <span class="click-active legend-btn" @click="changeLegend"></span>
     <transition>
-      <div class="legend legend-1" key="box1" v-if="legendIdx"></div>
-      <div class="legend legend-2" key="box2" v-else></div>
+      <div class="legend legend-2" key="box2" v-if="showYj"></div>
+      <div class="legend legend-1" key="box1" v-else></div>
     </transition>
     <span class="click-active area-btn" @click="changeForbidden"></span>
   </div>
 </template>
 
 <script>
+import { destroyForbiddenLayer } from '@/utils/map'
+
 export default {
   data() {
     return {
-      legendIdx: 1,
+      showYj: false,
       isHide: false
     }
   },
   methods: {
     changeLegend() {
-      this.legendIdx = this.legendIdx === 1 ? 0 : 1
+      this.showYj = !this.showYj
+
+      this.$emit('changePoint', this.showYj)
     },
     changeForbidden() {
       this.isHide = !this.isHide
-      this.$emit('changeForbidden', this.isHide)
+
+      destroyForbiddenLayer(this.isHide)
     }
   }
 }

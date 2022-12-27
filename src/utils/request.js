@@ -1,5 +1,6 @@
 import axios from 'axios'
 import store from '@/store'
+import { Message } from 'element-ui'
 
 const service = axios.create({
   timeout: 1000 * 5
@@ -10,7 +11,6 @@ service.interceptors.request.use(
     if (config.hasToken) {
       config.headers['Authorization'] = store.state.token
     }
-
     return config
   },
   (error) => Promise.reject(error) //返回错误信息
@@ -22,8 +22,13 @@ service.interceptors.response.use(
     return status === 200 ? Promise.resolve(data) : Promise.reject(res)
   },
   (error) => {
-    const { response, message } = errorHandle(error)
-    return Promise.reject(response || message) //返回错误信息
+    if (error.response) {
+      const { message } = errorHandle(error)
+      Message.error(message)
+    } else if (error.message.includes('timeout')) {
+      Message.error('请求超时，请检查网络连接!')
+    }
+    return Promise.reject(error) //返回错误信息
   }
 )
 

@@ -176,7 +176,7 @@
 
 <script>
 import alarmDialog from './AlarmDialog.vue'
-import { getPage, getByRegion, saveArea } from '@/api/index'
+import { getPage, saveArea } from '@/api/index'
 import {
   renderDrawFeature,
   destroyDrawLayer,
@@ -184,7 +184,6 @@ import {
   positionDrawFeature,
   drawGraph,
   removeInteraction,
-  renderYjPoints
 } from '@/utils/map'
 
 export default {
@@ -236,9 +235,6 @@ export default {
       radius: '',
       showAlarm: false
     }
-  },
-  mounted() {
-    this.getYJRegion()
   },
   methods: {
     alarmRegionClick() {
@@ -301,11 +297,6 @@ export default {
     changeShape(type) {
       this.shapeType = type
       this.draw(type)
-    },
-    async getYJRegion() {
-      const { result } = await getByRegion()
-      const points = result.targets
-      renderYjPoints(points)
     },
     draw(type) {
       this.$set(this.form, 'areaScopeType', type === 'Polygon' ? 1 : 2)

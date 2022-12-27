@@ -1,6 +1,6 @@
 <template>
   <div id="map">
-    <LeftBottomOperation @changeForbidden="changeForbidden" />
+    <LeftBottomOperation @changePoint="changePoint" />
     <RightBottomOperation />
 
     <ul class="point-modal" :style="pointStyles" v-show="showPointModal">
@@ -37,7 +37,7 @@
       <li class="bold">{{ markerInfo.name }}</li>
       <li>
         告警数量:
-        <span class="bold">{{ markerInfo.num }}</span>
+        <span class="red bold">{{ markerInfo.num }}</span>
         个
       </li>
     </ul>
@@ -66,15 +66,17 @@
 <script>
 import LeftBottomOperation from './components/LeftBottomOperation'
 import RightBottomOperation from './components/RightBottomOperation'
-import { getShipName, getMarkerPoint } from '@/api/index'
+import { getShipName, getByRegion, getMarkerPoint } from '@/api/index'
 import {
   initMap,
   renderForbidden,
-  destroyForbiddenLayer,
   renderMarkerFeature,
-  renderPoints,
+  renderWsPoints,
+  renderYjPoints,
+  removePointsLayer,
   timestampToTime
 } from '@/utils/map'
+import { yjData } from './data'
 
 export default {
   components: {
@@ -133,31 +135,33 @@ export default {
     }
   },
   destroyed() {
-    this.socket && (this.socket.onclose = this.close)
+    this.socket && (this.socket.close())
   },
   methods: {
     async getMarkerPoint() {
       const res = await getMarkerPoint()
       const markers = res.data || []
-      // 色块区域覆盖   type  1涉险  2采砂
-      const areas = [
-        { lon: 120.867117, lat: 31.963577, name: '滨江公园北', type: 1 },
-        { lon: 120.968597, lat: 31.814501, name: '开发区正大农药', type: 1 },
-        { lon: 121.029814, lat: 31.795243, name: '新通海沙西搬迁', type: 1 },
-        { lon: 120.870082, lat: 31.957349, name: '狼山水厂', type: 1 },
-        { lon: 120.809163, lat: 32.014143, name: '通吕运河口', type: 2 },
-        { lon: 120.867117, lat: 31.963577, name: '滨江公园北', type: 2 },
-        { lon: 120.934619, lat: 31.857711, name: '南通惠生重工', type: 2 },
-        {
-          lon: 120.741801,
-          lat: 32.041311,
-          name: '九圩港船闸管理所南',
-          type: 2
-        },
-        { lon: 120.946811, lat: 31.819622, name: '王子造纸', type: 2 },
-        { lon: 121.054611, lat: 31.792236, name: '新通海沙南', type: 2 }
-      ]
-      renderMarkerFeature(markers, areas)
+      if (markers.length > 0) {
+        // 色块区域覆盖   type  1涉险  2采砂
+        const areas = [
+          { lon: 120.867117, lat: 31.963577, name: '滨江公园北', type: 1 },
+          { lon: 120.968597, lat: 31.814501, name: '开发区正大农药', type: 1 },
+          { lon: 121.029814, lat: 31.795243, name: '新通海沙西搬迁', type: 1 },
+          { lon: 120.870082, lat: 31.957349, name: '狼山水厂', type: 1 },
+          { lon: 120.809163, lat: 32.014143, name: '通吕运河口', type: 2 },
+          { lon: 120.867117, lat: 31.963577, name: '滨江公园北', type: 2 },
+          { lon: 120.934619, lat: 31.857711, name: '南通惠生重工', type: 2 },
+          {
+            lon: 120.741801,
+            lat: 32.041311,
+            name: '九圩港船闸管理所南',
+            type: 2
+          },
+          { lon: 120.946811, lat: 31.819622, name: '王子造纸', type: 2 },
+          { lon: 121.054611, lat: 31.792236, name: '新通海沙南', type: 2 }
+        ]
+        renderMarkerFeature(markers, areas)
+      }
     },
     initWebSocket() {
       if (typeof WebSocket === 'undefined') {
@@ -171,6 +175,8 @@ export default {
         this.socket.onerror = this.error
         // 监听socket消息
         this.socket.onmessage = this.getMessage
+        // 监听socket消息
+        this.socket.onclose = this.close
       }
     },
     open() {
@@ -181,10 +187,29 @@ export default {
     },
     getMessage(msg) {
       const points = JSON.parse(msg.data)
-      renderPoints(points)
+      renderWsPoints(points)
     },
     close() {
       console.log('socket已经关闭')
+    },
+    async getYJRegion() {
+      const res = await getByRegion()
+      const points = res.result.targets
+      renderYjPoints(points)
+    },
+    // getYJRegion() {
+    //   const res = yjData
+    //   const points = res.result.targets
+    //   renderYjPoints(points)
+    // },
+    changePoint(isYj) {
+      removePointsLayer(isYj)
+      if (isYj) {
+        this.socket && (this.socket.close())
+        this.getYJRegion()
+      } else {
+        this.initWebSocket()
+      }
     },
     mountSingleClick() {
       this.map.on('singleclick', (e) => {
@@ -193,6 +218,7 @@ export default {
           (feature) => feature
         )
         if (feature && feature.values_.isws_point) {
+          console.log(feature.values_.isws_point)
           const featureInfo = { ...feature.values_.isws_point }
           if (!featureInfo.name) {
             const params = {
@@ -202,10 +228,10 @@ export default {
             getShipName(params).then((res) => {
               if (res.code === 0) {
                 featureInfo.name = res.data.vesselName
-                this.pointInfo = featureInfo
               }
             })
           }
+          this.pointInfo = featureInfo
           const pixel = this.map.getEventPixel(e.originalEvent)
           this.pointStyles.left = pixel[0] + 'px'
           this.pointStyles.top = pixel[1] + 'px'
@@ -239,9 +265,6 @@ export default {
           this.showMarkerModal = false
         }
       })
-    },
-    changeForbidden(isHide) {
-      destroyForbiddenLayer(isHide)
     }
   }
 }
@@ -264,7 +287,7 @@ export default {
   li {
     padding: 5px;
   }
-  span {
+  .red {
     color: red;
   }
 }

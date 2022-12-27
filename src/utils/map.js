@@ -103,8 +103,8 @@ export const renderForbidden = () => {
         })
       })
     )
-    features.push(polygonFeature)
-    // forbiddenLayer.getSource().addFeature(polygonFeature)
+    features.push(polygonFeature) // ① 第一种方式
+    // forbiddenLayer.getSource().addFeature(polygonFeature) // ② 第二种方式
   })
   vectorSource.addFeatures(features)
 }
@@ -349,15 +349,15 @@ export const removeInteraction = () => {
  * 渲染点位数据
  * @param {[]} points 点位集合
  */
-let pointLayer = null
-export const renderPoints = (points) => {
-  pointLayer && map.removeLayer(pointLayer)
+let wsVectorLayer = null
+export const renderWsPoints = (points) => {
+  wsVectorLayer && map.removeLayer(wsVectorLayer)
 
   const vectorSource = new VectorSource({ wrapX: false })
-  pointLayer = new VectorLayer({
+  wsVectorLayer = new VectorLayer({
     source: vectorSource
   })
-  map.addLayer(pointLayer)
+  map.addLayer(wsVectorLayer)
 
   let features = []
   points.forEach((item) => {
@@ -408,8 +408,8 @@ export const renderYjPoints = (points) => {
         length: item.len,
         course: item.cog,
         speed: item.sog,
-        latitude: item.lat,
-        longitude: item.lon,
+        latitude: item.lat.toFixed(6),
+        longitude: item.lon.toFixed(6),
         state: item.state,
         timestamp: item.ltm,
         mmsi: item.mmsi
@@ -426,6 +426,14 @@ export const renderYjPoints = (points) => {
     features.push(feature)
   })
   vectorSource.addFeatures(features)
+}
+
+/**
+ * ws点位和鹰觉点位数据
+ * @param {[]} points 点位集合
+ */
+export const removePointsLayer = (isYj) => {
+  isYj ? map.removeLayer(wsVectorLayer) : map.removeLayer(yjVectorLayer)
 }
 
 // 时间戳转换为时间
