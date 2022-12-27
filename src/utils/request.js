@@ -1,15 +1,16 @@
 import axios from 'axios'
-// import store from '@/store'
+import store from '@/store'
 
 const service = axios.create({
-  // baseURL: BASEURL, // ①预定义
   timeout: 1000 * 5
 })
 
 service.interceptors.request.use(
   (config) => {
-    // config.baseURL = process.env.VUE_APP_API_URL // ②根据条件定义
-    // config.headers['Authorization'] = store.state.permission.token
+    if (config.hasToken) {
+      config.headers['Authorization'] = store.state.token
+    }
+
     return config
   },
   (error) => Promise.reject(error) //返回错误信息

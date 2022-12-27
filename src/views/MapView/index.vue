@@ -3,33 +3,42 @@
     <LeftBottomOperation @changeForbidden="changeForbidden" />
     <RightBottomOperation />
 
-    <ul class="ws-modal" :style="styles" v-show="showWSModal">
+    <ul class="point-modal" :style="pointStyles" v-show="showPointModal">
       <li>
-        <span>船名：</span><span>{{ featureInfo.name }}</span>
+        <span>船名：</span><span>{{ pointInfo.name }}</span>
       </li>
       <li>
-        <span>船长：</span><span>{{ featureInfo.length }}米</span>
+        <span>船长：</span><span>{{ pointInfo.length }}米</span>
       </li>
       <li>
-        <span>航向：</span><span>{{ featureInfo.course }}</span>
+        <span>航向：</span><span>{{ pointInfo.course }}</span>
       </li>
       <li>
-        <span>航速：</span><span>{{ featureInfo.speed }}</span>
+        <span>航速：</span><span>{{ pointInfo.speed }}</span>
       </li>
       <li>
-        <span>经度：</span><span>{{ featureInfo.longitude }}</span>
+        <span>经度：</span><span>{{ pointInfo.longitude }}</span>
       </li>
       <li>
-        <span>纬度：</span><span>{{ featureInfo.latitude }}</span>
+        <span>纬度：</span><span>{{ pointInfo.latitude }}</span>
       </li>
       <li>
-        <span>状态：</span><span>{{ featureInfo.state | filterState }}</span>
+        <span>状态：</span><span>{{ pointInfo.state | filterState }}</span>
       </li>
       <li>
-        <span>时间：</span><span>{{ featureInfo.timestamp | fommatDate }}</span>
+        <span>时间：</span><span>{{ pointInfo.timestamp | fommatDate }}</span>
       </li>
       <li>
-        <span>mmsi：</span><span>{{ featureInfo.mmsi }}</span>
+        <span>mmsi：</span><span>{{ pointInfo.mmsi }}</span>
+      </li>
+    </ul>
+
+    <ul class="marker-modal" :style="markerStyles" v-show="showMarkerModal">
+      <li class="bold">{{ markerInfo.name }}</li>
+      <li>
+        告警数量:
+        <span class="bold">{{ markerInfo.num }}</span>
+        个
       </li>
     </ul>
 
@@ -57,11 +66,12 @@
 <script>
 import LeftBottomOperation from './components/LeftBottomOperation'
 import RightBottomOperation from './components/RightBottomOperation'
-import { getShipName } from '@/api/index'
+import { getShipName, getMarkerPoint } from '@/api/index'
 import {
   initMap,
-  renderArea,
+  renderForbidden,
   destroyForbiddenLayer,
+  renderMarkerFeature,
   renderPoints,
   timestampToTime
 } from '@/utils/map'
@@ -75,9 +85,12 @@ export default {
     return {
       socket: null,
       WSPATH: `${process.env.VUE_APP_WS}/ID=9999`,
-      showWSModal: false,
-      styles: {},
-      featureInfo: {},
+      showPointModal: false,
+      pointStyles: {},
+      pointInfo: {},
+      showMarkerModal: false,
+      markerStyles: {},
+      markerInfo: {},
       showCamera: false
     }
   },
@@ -102,37 +115,18 @@ export default {
   },
   mounted() {
     this.map = initMap('map')
-    this.map.on('singleclick', (e) => {
-      let feature = this.map.forEachFeatureAtPixel(
-        e.pixel,
-        (feature) => feature
-      )
-      if (feature && feature.values_.isws_point) {
-        const featureInfo = { ...feature.values_.isws_point }
-        if (!featureInfo.name) {
-          const params = {
-            targetId: featureInfo.targetId,
-            mmsi: featureInfo.mmsi
-          }
-          getShipName(params).then((res) => {
-            if (res.code === 0) {
-              featureInfo.name = res.data.vesselName
-              this.featureInfo = featureInfo
-            }
-          })
-        }
-        const pixel = this.map.getEventPixel(e.originalEvent)
-        this.styles.left = pixel[0] + 'px'
-        this.styles.top = pixel[1] + 'px'
-        this.showWSModal = true
-      } else {
-        this.showWSModal = false
-      }
-    })
-    renderArea()
-    this.initWebSocket()
 
-    // http://localhost:8080/#/?lot=12&lat=15
+    this.initWebSocket()
+    // 渲染禁区图形
+    renderForbidden()
+    // 获取标记点位信息
+    this.getMarkerPoint()
+    // 挂载点位单击事件
+    this.mountSingleClick()
+    // 挂载标记点鼠标滑过事件
+    this.mountPointerMove()
+
+    // 地址实例：http://localhost:8080/#/?lot=12&lat=15
     const params = this.$route.query
     if (params.lot && params.lat) {
       this.showCamera = true
@@ -142,6 +136,29 @@ export default {
     this.socket && (this.socket.onclose = this.close)
   },
   methods: {
+    async getMarkerPoint() {
+      const res = await getMarkerPoint()
+      const markers = res.data || []
+      // 色块区域覆盖   type  1涉险  2采砂
+      const areas = [
+        { lon: 120.867117, lat: 31.963577, name: '滨江公园北', type: 1 },
+        { lon: 120.968597, lat: 31.814501, name: '开发区正大农药', type: 1 },
+        { lon: 121.029814, lat: 31.795243, name: '新通海沙西搬迁', type: 1 },
+        { lon: 120.870082, lat: 31.957349, name: '狼山水厂', type: 1 },
+        { lon: 120.809163, lat: 32.014143, name: '通吕运河口', type: 2 },
+        { lon: 120.867117, lat: 31.963577, name: '滨江公园北', type: 2 },
+        { lon: 120.934619, lat: 31.857711, name: '南通惠生重工', type: 2 },
+        {
+          lon: 120.741801,
+          lat: 32.041311,
+          name: '九圩港船闸管理所南',
+          type: 2
+        },
+        { lon: 120.946811, lat: 31.819622, name: '王子造纸', type: 2 },
+        { lon: 121.054611, lat: 31.792236, name: '新通海沙南', type: 2 }
+      ]
+      renderMarkerFeature(markers, areas)
+    },
     initWebSocket() {
       if (typeof WebSocket === 'undefined') {
         alert('您的浏览器不支持socket')
@@ -166,11 +183,62 @@ export default {
       const points = JSON.parse(msg.data)
       renderPoints(points)
     },
-    // send(params) {
-    //   this.socket.send(params)
-    // },
     close() {
       console.log('socket已经关闭')
+    },
+    mountSingleClick() {
+      this.map.on('singleclick', (e) => {
+        let feature = this.map.forEachFeatureAtPixel(
+          e.pixel,
+          (feature) => feature
+        )
+        if (feature && feature.values_.isws_point) {
+          const featureInfo = { ...feature.values_.isws_point }
+          if (!featureInfo.name) {
+            const params = {
+              targetId: featureInfo.targetId,
+              mmsi: featureInfo.mmsi
+            }
+            getShipName(params).then((res) => {
+              if (res.code === 0) {
+                featureInfo.name = res.data.vesselName
+                this.pointInfo = featureInfo
+              }
+            })
+          }
+          const pixel = this.map.getEventPixel(e.originalEvent)
+          this.pointStyles.left = pixel[0] + 'px'
+          this.pointStyles.top = pixel[1] + 'px'
+          this.showPointModal = true
+        } else {
+          this.showPointModal = false
+        }
+      })
+    },
+    mountPointerMove() {
+      this.map.on('pointermove', (e) => {
+        let feature = this.map.forEachFeatureAtPixel(
+          e.pixel,
+          (feature) => feature
+        )
+        if (feature && feature.values_.marker) {
+          const featureInfo = { ...feature.values_.marker }
+          if (featureInfo.status !== 0 && featureInfo.alarmList?.length > 0) {
+            this.map.getTargetElement().style.cursor = 'pointer'
+            this.markerInfo = {
+              name: featureInfo.name,
+              num: featureInfo.alarmList.length
+            }
+            const pixel = this.map.getEventPixel(e.originalEvent)
+            this.markerStyles.left = pixel[0] + 'px'
+            this.markerStyles.top = pixel[1] + 'px'
+            this.showMarkerModal = true
+          }
+        } else {
+          this.map.getTargetElement().style.cursor = 'auto'
+          this.showMarkerModal = false
+        }
+      })
     },
     changeForbidden(isHide) {
       destroyForbiddenLayer(isHide)
@@ -185,11 +253,9 @@ export default {
   height: 100%;
   position: relative;
 }
-.ws-modal {
+.marker-modal,
+.point-modal {
   position: fixed;
-  width: fit-content;
-  max-width: 350px;
-  height: fit-content;
   padding: 8px 10px;
   color: white;
   font-size: 20px;
@@ -197,6 +263,9 @@ export default {
   z-index: 4;
   li {
     padding: 5px;
+  }
+  span {
+    color: red;
   }
 }
 .camera-dialog {

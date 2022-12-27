@@ -36,6 +36,7 @@ export default {
   bottom: 20px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   span {
     width: 38px;
     height: 38px;
@@ -50,8 +51,9 @@ export default {
     background-image: url('@/assets/image/legend-icon.png');
   }
   .area-btn {
-    background-color: #fff;
-    // background-image: url('../../assets/image/warn-icon1.png');
+    width: 36px;
+    height: 32px;
+    background-image: url('@/assets/image/area-icon.png');
   }
   .legend {
     position: absolute;

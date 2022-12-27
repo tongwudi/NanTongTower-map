@@ -71,7 +71,7 @@ export const initMap = (target) => {
  * @constant forbiddenLayer 禁区图层
  */
 let forbiddenLayer = null
-export const renderArea = () => {
+export const renderForbidden = () => {
   const vectorSource = new VectorSource({ wrapX: false })
   forbiddenLayer = new VectorLayer({
     source: vectorSource // ① 第一种方式
@@ -115,6 +115,83 @@ export const renderArea = () => {
  */
 export const destroyForbiddenLayer = (isHide) => {
   isHide ? map.removeLayer(forbiddenLayer) : map.addLayer(forbiddenLayer)
+}
+
+/**
+ * 渲染标记点图层
+ * @constant markerLayer 标记点图层
+ * @param {[]} markers 标记点信息集合
+ * @param {[]} areas 覆盖区域信息集合
+ */
+let markerLayer = null
+export const renderMarkerFeature = (markers, areas) => {
+  markerLayer && map.removeLayer(markerLayer)
+
+  const vectorSource = new VectorSource({ wrapX: false })
+  markerLayer = new VectorLayer({
+    source: vectorSource
+  })
+  map.addLayer(markerLayer)
+
+  let markersFeatures = []
+  markers.forEach((item) => {
+    let feature = new Feature({
+      geometry: new Point(
+        fromLonLat([Number(item.lon) + 0.013, Number(item.lat) - 0.167])
+      ),
+      marker: item
+    })
+    feature.setStyle(
+      new Style({
+        zIndex: 1,
+        image: new Icon({
+          scale: 0.32,
+          src: chooseMarkerIcon(item)
+        }),
+        // text 文本标签样式
+        text: new Text({
+          backgroundStroke: new Stroke({
+            color: 'rgba(0,0,0,0.5)',
+            width: 8
+          }),
+          backgroundFill: new Fill({
+            color: 'rgba(0,0,0,0.5)'
+          }),
+          font: 'normal 14px 微软雅黑',
+          offsetX: 17,
+          offsetY: -6,
+          textAlign: 'left',
+          text: item.name,
+          fill: new Fill({
+            color: '#ccc'
+          })
+        })
+      })
+    )
+    markersFeatures.push(feature)
+  })
+  let areasFeatures = []
+  areas.forEach((item) => {
+    let feature = new Feature({
+      geometry: new Point(
+        fromLonLat([Number(item.lon) + 0.013, Number(item.lat) - 0.167])
+      )
+    })
+    feature.setStyle(
+      new Style({
+        image: new Icon({
+          scale: 0.4,
+          src:
+            item.type === 1
+              ? require('@/assets/image/marker_icon/2_back.png')
+              : require('@/assets/image/marker_icon/3_back.png'),
+          offset: [0, -30]
+        })
+      })
+    )
+    areasFeatures.push(feature)
+  })
+  vectorSource.addFeatures([...areasFeatures, ...markersFeatures])
 }
 
 /**
@@ -164,69 +241,30 @@ export const destroyDrawLayer = (isHide) => {
 }
 
 /**
+ * 已绘制图形要素的添加与删除
+ * @param {Number} idx 数据索引
+ * @param {Boolean} isHide 是否显示
+ */
+export const removeDrawFeature = (idx, isHide) => {
+  const feature = drawFeatures[idx]
+
+  isHide
+    ? drawLayer.getSource().removeFeature(feature)
+    : drawLayer.getSource().addFeature(feature)
+}
+
+/**
  * 定位到图形要素
  * @param {number} idx 数据索引
  */
-export const positionFeature = (idx) => {
+export const positionDrawFeature = (idx) => {
   // 获取地图视图 view
-  var view = map.getView()
-  var extent = drawFeatures[idx].getGeometry().getExtent()
+  const view = map.getView()
+  const extent = drawFeatures[idx].getGeometry().getExtent()
   // 定位范围
   view.fit(extent, {
     duration: 1200 // 动画的持续时间
   })
-}
-
-/**
- * 生成图形要素
- * @param {{}} item 图形要素信息
- */
-const generateDrawFeature = (item) => {
-  let geometry
-  switch (item.areaScopeType) {
-    // 渲染面
-    case 1:
-      const pointsRes = item.areaScope.map((v) => fromLonLat(v))
-      geometry = new Polygon([pointsRes])
-      break
-    // 渲染圆
-    case 2:
-      // 比例尺  单位 米
-      // const metersPerUnit = map.getView().getProjection().getMetersPerUnit()
-      // geometry = new Circle(
-      //   fromLonLat(item.areaScope),
-      //   item.radius / metersPerUnit
-      // )
-      geometry = new Circle(fromLonLat(item.areaScope), item.radius)
-      break
-    // 渲染点
-    default:
-      geometry = new Point(fromLonLat(item.areaScope))
-  }
-  let feature = new Feature({
-    geometry: geometry
-  })
-  // 图形渲染样式
-  feature.setStyle(
-    new Style({
-      stroke: new Stroke({
-        width: 2,
-        lineDash: item.areaOutsideStyle === 'dashed' ? [10, 10, 10, 10] : false,
-        color: hexToRgba(item.areaOutsideColor, item.areaOutsideOpacity)
-      }),
-      fill: new Fill({
-        color: hexToRgba(item.areaInsideColor, item.areaInsideOpacity)
-      }),
-      text: new Text({
-        text: item.areaName,
-        font: 'normal 14px 微软雅黑',
-        fill: new Fill({
-          color: '#000'
-        })
-      })
-    })
-  )
-  return feature
 }
 
 /**
@@ -336,7 +374,7 @@ export const renderPoints = (points) => {
       new Style({
         image: new Icon({
           scale: 1.2,
-          src: chooseIcon(item.type)
+          src: chooseTypeIcon(item.type)
         })
       })
     )
@@ -381,7 +419,7 @@ export const renderYjPoints = (points) => {
       new Style({
         image: new Icon({
           scale: 1.2,
-          src: chooseIcon(item.type)
+          src: chooseTypeIcon(item.type)
         })
       })
     )
@@ -407,28 +445,95 @@ export const timestampToTime = (timestamp) => {
   return Y + M + D + h + m + s
 }
 
-// 根据点位类型渲染点位图标
-const chooseIcon = (type) => {
-  const obj = {
-    AIS_A: require('../assets/type_ico/aisA_1.bef82bfa.png'),
-    AIS_B: require('../assets/type_ico/aisB_1.fb51160f.png'),
-    SIMULATION: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
-    RADAR: require('../assets/type_ico/radar.2c6e4e03.png'),
-    RADAR_AIS_A: require('../assets/type_ico/aisAR_1.44fb1489.png'),
-    RADAR_AIS_B: require('../assets/type_ico/aisBR_1.8ca96264.png'),
-    RADAR_AIS_A_PRESUMABLE: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
-    RADAR_AIS_B_PRESUMABLE: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
-    BDS: require('../assets/type_ico/BD-1.0d2328f8.png'),
-    GPS: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
-    AID: require('../assets/type_ico/AID.5aa51bd8.png'),
-    RADAR_AID: require('../assets/type_ico/AIDR.19f67404.png'),
-    VAID: require('../assets/type_ico/VAID.a350fe21.png'),
-    RADAR_VAID: require('../assets/type_ico/VAIDR.06a8ef61.png'),
-    duplicate_A: require('../assets/type_ico/Unknown-1.6cd8918e.png'),
-    duplicate_B: require('../assets/type_ico/Unknown-1.6cd8918e.png')
+/**
+ * 生成图形要素
+ * @param {{}} item 图形要素信息
+ * @returns 图形要素对象
+ */
+const generateDrawFeature = (item) => {
+  let geometry
+  switch (item.areaScopeType) {
+    // 渲染面
+    case 1:
+      const pointsRes = item.areaScope.map((v) => fromLonLat(v))
+      geometry = new Polygon([pointsRes])
+      break
+    // 渲染圆
+    case 2:
+      // 比例尺  单位 米
+      // const metersPerUnit = map.getView().getProjection().getMetersPerUnit()
+      // geometry = new Circle(
+      //   fromLonLat(item.areaScope),
+      //   item.radius / metersPerUnit
+      // )
+      geometry = new Circle(fromLonLat(item.areaScope), item.radius)
+      break
+    // 渲染点
+    default:
+      geometry = new Point(fromLonLat(item.areaScope))
   }
-  return obj[type] || require('../assets/type_ico/Unknown-1.6cd8918e.png')
+  let feature = new Feature({
+    geometry: geometry
+  })
+  // 图形渲染样式
+  feature.setStyle(
+    new Style({
+      stroke: new Stroke({
+        width: 2,
+        lineDash: item.areaOutsideStyle === 'dashed' ? [10, 10, 10, 10] : false,
+        color: hexToRgba(item.areaOutsideColor, item.areaOutsideOpacity)
+      }),
+      fill: new Fill({
+        color: hexToRgba(item.areaInsideColor, item.areaInsideOpacity)
+      }),
+      text: new Text({
+        text: item.areaName,
+        font: 'normal 14px 微软雅黑',
+        fill: new Fill({
+          color: '#000'
+        })
+      })
+    })
+  )
+  return feature
 }
+
+// 根据条件渲染标记点图标
+const chooseMarkerIcon = (item) => {
+  let src = ''
+  if (item.status === 0) {
+    src = require('@/assets/image/marker_icon/4.png')
+  } else if (item.alarmList?.length > 0) {
+    src = require('@/assets/image/marker_icon/2.png')
+  } else {
+    src = require('@/assets/image/marker_icon/1.png')
+  }
+  return src
+}
+
+// 根据点位类型渲染点位图标
+const chooseTypeIcon = (type) => {
+  const obj = {
+    AIS_A: require('@/assets/image/type_icon/aisA_1.bef82bfa.png'),
+    AIS_B: require('@/assets/image/type_icon/aisB_1.fb51160f.png'),
+    SIMULATION: require('@/assets/image/type_icon/Unknown.png'),
+    RADAR: require('@/assets/image/type_icon/radar.png'),
+    RADAR_AIS_A: require('@/assets/image/type_icon/aisAR_1.44fb1489.png'),
+    RADAR_AIS_B: require('@/assets/image/type_icon/aisBR_1.8ca96264.png'),
+    RADAR_AIS_A_PRESUMABLE: require('@/assets/image/type_icon/Unknown.png'),
+    RADAR_AIS_B_PRESUMABLE: require('@/assets/image/type_icon/Unknown.png'),
+    BDS: require('@/assets/image/type_icon/BD-1.0d2328f8.png'),
+    GPS: require('@/assets/image/type_icon/Unknown.png'),
+    AID: require('@/assets/image/type_icon/AID.5aa51bd8.png'),
+    RADAR_AID: require('@/assets/image/type_icon/AIDR.19f67404.png'),
+    VAID: require('@/assets/image/type_icon/VAID.a350fe21.png'),
+    RADAR_VAID: require('@/assets/image/type_icon/VAIDR.06a8ef61.png'),
+    duplicate_A: require('@/assets/image/type_icon/Unknown.png'),
+    duplicate_B: require('@/assets/image/type_icon/Unknown.png')
+  }
+  return obj[type] || require('@/assets/image/type_icon/Unknown.png')
+}
+
 // 偏移值转换
 const conversion = (position) => {
   let cc = []
@@ -437,6 +542,7 @@ const conversion = (position) => {
   })
   return cc
 }
+
 // 将hex颜色转成rgb
 const hexToRgba = (hex = '#445DA7', opacity = 50) => {
   let red = parseInt('0x' + hex.slice(1, 3))

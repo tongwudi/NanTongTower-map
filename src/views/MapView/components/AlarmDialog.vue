@@ -77,7 +77,7 @@ export default {
   },
   methods: {
     getList(isYj) {
-      this.url = isYj ? '/api/alarmInfo/yjPage' : '/api/alarmInfo/page'
+      this.url = isYj ? '/alarmInfo/yjPage' : '/alarmInfo/page'
       this.getDataList()
     },
     prevPage() {

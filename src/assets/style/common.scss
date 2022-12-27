@@ -33,6 +33,10 @@ ul {
   z-index: 1;
 }
 
+.bold {
+  font-weight: bold;
+}
+
 .click-active:active {
   transform: scale(0.95);
 }

@@ -9,6 +9,7 @@
       className="region-dialog"
       title="报警模块"
       :visible.sync="showAlarmModule"
+      @close="closeRegionClick"
     >
       <el-row
         type="flex"
@@ -28,8 +29,12 @@
         </div>
       </el-row>
       <div class="dialog-table">
-        <el-table :data="tableData" @selection-change="handleSelectionChange">
-          <el-table-column type="selection" align="center" width="60px" />
+        <el-table :data="tableData">
+          <el-table-column label="隐藏" align="center" width="80px">
+            <template slot-scope="{ $index, row }">
+              <el-checkbox @change="(e) => hideArea($index, e, row)" />
+            </template>
+          </el-table-column>
           <el-table-column label="名称" align="center">
             <template slot-scope="{ $index, row }">
               <el-link :underline="false" @click="positionClick($index)">
@@ -159,7 +164,7 @@
         <div class="divider"></div>
         <el-form-item label-width="0" style="text-align: center">
           <el-button type="primary" size="medium" @click="save">保存</el-button>
-          <el-button type="info" size="medium" @click="reset">取消</el-button>
+          <el-button type="info" size="medium" @click="cancel">取消</el-button>
         </el-form-item>
       </el-form>
     </m-dialog>
@@ -175,7 +180,8 @@ import { getPage, getByRegion, saveArea } from '@/api/index'
 import {
   renderDrawFeature,
   destroyDrawLayer,
-  positionFeature,
+  removeDrawFeature,
+  positionDrawFeature,
   drawGraph,
   removeInteraction,
   renderYjPoints
@@ -236,9 +242,12 @@ export default {
   },
   methods: {
     alarmRegionClick() {
-      let data = {}
-      data.type = '关闭大屏UI'
-      this.$parent.socket.send(JSON.stringify(data))
+      // 若为1，则表示连接已建立
+      if (this.$parent.socket.readyState === 1) {
+        let data = {}
+        data.type = '关闭大屏UI'
+        this.$parent.socket.send(JSON.stringify(data))
+      }
 
       this.showAlarmModule = true
       this.getAreaPage()
@@ -246,7 +255,7 @@ export default {
     async getAreaPage() {
       const { pageNum, pageSize } = this.pagination
       const params = { pageNum, pageSize }
-      const { data } = await getPage('/api/alarmInfo/areaList', params)
+      const { data } = await getPage('/alarmInfo/areaList', params)
       this.pagination.pager = Math.ceil(data.total / pageSize)
       this.tableData = data.list
 
@@ -275,11 +284,17 @@ export default {
     hideAllArea(val) {
       destroyDrawLayer(val)
     },
-    positionClick(idx) {
-      positionFeature(idx)
+    hideArea(idx, val, row) {
+      row.isHide = val
+      removeDrawFeature(idx, val)
     },
-    handleSelectionChange() {},
+    positionClick(idx) {
+      positionDrawFeature(idx)
+    },
     handleDelete(row) {},
+    closeRegionClick() {
+      destroyDrawLayer(true)
+    },
     addAreaClick() {
       this.showAddArea = true
     },
@@ -322,6 +337,10 @@ export default {
           })
         }
       })
+    },
+    cancel() {
+      this.showAddArea = false
+      this.reset()
     },
     reset() {
       removeInteraction()
