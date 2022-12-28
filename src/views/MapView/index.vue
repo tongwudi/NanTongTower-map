@@ -135,7 +135,7 @@ export default {
     }
   },
   destroyed() {
-    this.socket && (this.socket.close())
+    this.socket && this.socket.close()
   },
   methods: {
     async getMarkerPoint() {
@@ -194,18 +194,18 @@ export default {
     },
     async getYJRegion() {
       const res = await getByRegion()
-      const points = res.result.targets
+      const points = res.result.targets?.filter((item) => item.stp != 0) || []
       renderYjPoints(points)
     },
     // getYJRegion() {
     //   const res = yjData
-    //   const points = res.result.targets
+    //   const points = res.result.targets?.filter((item) => item.stp != 0) || []
     //   renderYjPoints(points)
     // },
     changePoint(isYj) {
       removePointsLayer(isYj)
       if (isYj) {
-        this.socket && (this.socket.close())
+        this.socket && this.socket.close()
         this.getYJRegion()
       } else {
         this.initWebSocket()
@@ -218,7 +218,6 @@ export default {
           (feature) => feature
         )
         if (feature && feature.values_.isws_point) {
-          console.log(feature.values_.isws_point)
           const featureInfo = { ...feature.values_.isws_point }
           if (!featureInfo.name) {
             const params = {

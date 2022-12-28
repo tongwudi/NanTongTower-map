@@ -419,7 +419,7 @@ export const renderYjPoints = (points) => {
       new Style({
         image: new Icon({
           scale: 1.2,
-          src: chooseTypeIcon(item.type)
+          src: chooseYjTypeIcon(item.stp)
         })
       })
     )
@@ -540,6 +540,29 @@ const chooseTypeIcon = (type) => {
     duplicate_B: require('@/assets/image/type_icon/Unknown.png')
   }
   return obj[type] || require('@/assets/image/type_icon/Unknown.png')
+}
+
+// 根据点位类型渲染鹰觉点位图标
+const chooseYjTypeIcon = (stp) => {
+  let src = ''
+  switch (stp) {
+    case 1 || 30 || 100 || 101:
+      src = require('@/assets/image/yjtype_icon/leida.png')
+      break
+    case 10:
+      src = require('@/assets/image/yjtype_icon/AIS_A.png')
+      break
+    case 20:
+      src = require('@/assets/image/yjtype_icon/AIS_B.png')
+      break
+    case 11 || 110 || 111:
+      src = require('@/assets/image/yjtype_icon/ld.AIS_A.png')
+      break
+    case 21 || 120 || 121:
+      src = require('@/assets/image/yjtype_icon/ld.AIS_B.png')
+      break
+  }
+  return src
 }
 
 // 偏移值转换
