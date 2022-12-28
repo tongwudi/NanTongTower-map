@@ -18,17 +18,68 @@
     </el-row>
     <div class="dialog-table">
       <el-table :data="alarmTableData">
-        <el-table-column prop="areaName" label="名称" align="center" />
-        <el-table-column label="操作" align="center" width="180px">
-          <template slot-scope="{ row }">
-            <el-button size="mini" type="primary" @click="handleDelete(row)">
-              确认
-            </el-button>
-            <el-button size="mini" type="info" @click="handleDelete(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
+        <template v-if="isYj">
+          <el-table-column
+            prop="alarmCategory"
+            label="告警类型"
+            align="center"
+            width="220"
+          />
+          <el-table-column
+            prop="subject"
+            label="告警目标"
+            align="center"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="alarmTime"
+            label="告警时间"
+            align="center"
+            width="180"
+          />
+          <el-table-column label="操作" align="center" width="180px">
+            <template slot-scope="{ row }">
+              <el-button size="mini" type="primary">确认</el-button>
+              <el-button size="mini" type="info" @click="handleDelete(row)">
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </template>
+        <template v-else>
+          <el-table-column
+            prop="areaName"
+            label="告警区域"
+            align="center"
+            width="200"
+          />
+          <el-table-column
+            prop="alarmName"
+            label="告警类型"
+            align="center"
+            width="110"
+          />
+          <el-table-column
+            prop="targetName"
+            label="告警目标"
+            align="center"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="alarmTime"
+            label="告警时间"
+            align="center"
+            width="180"
+          />
+          <el-table-column label="操作" align="center" width="170px">
+            <template slot-scope="{ row }">
+              <el-button size="mini" type="primary">确认</el-button>
+              <el-button size="mini" type="info" @click="handleDelete(row)">
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </template>
       </el-table>
     </div>
     <div class="pagination">
@@ -64,20 +115,17 @@ export default {
         pageSize: 5,
         pager: 0
       },
+      isYj: false,
       url: '',
-      alarmTableData: [
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' },
-        { areaName: 'fd' }
-      ],
+      alarmTableData: [],
       value: '1'
     }
   },
   methods: {
     getList(isYj) {
+      this.isYj = isYj
       this.url = isYj ? '/alarmInfo/yjPage' : '/alarmInfo/page'
+      this.pagination.pageNum = 1
       this.getDataList()
     },
     prevPage() {
@@ -102,7 +150,7 @@ export default {
 
 <style lang="scss" scoped>
 .alarm-dialog {
-  width: 900px;
+  width: 940px;
   height: 450px;
   padding: 33px 42px;
   background-image: url('@/assets/image/alarm-bg.png');
