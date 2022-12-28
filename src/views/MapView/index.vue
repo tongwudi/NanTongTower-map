@@ -76,7 +76,6 @@ import {
   removePointsLayer,
   timestampToTime
 } from '@/utils/map'
-import { yjData } from './data'
 
 export default {
   components: {
@@ -197,11 +196,6 @@ export default {
       const points = res.result.targets?.filter((item) => item.stp != 0) || []
       renderYjPoints(points)
     },
-    // getYJRegion() {
-    //   const res = yjData
-    //   const points = res.result.targets?.filter((item) => item.stp != 0) || []
-    //   renderYjPoints(points)
-    // },
     changePoint(isYj) {
       removePointsLayer(isYj)
       if (isYj) {

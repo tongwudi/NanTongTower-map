@@ -30,12 +30,4 @@ export const getShipName = (params) =>
 //     'http://221.181.113.142:32187/target/getByRegion?minLon=120.0551420838862&minLat=31.197246498871603&maxLon=122.46518797049585&maxLat=32.67199009043264&zoom=14'
 //   )
 export const getByRegion = () =>
-  request.get('http://192.168.11.99:8086/target/getByRegion', {
-    params: {
-      minLon: 120.0551420838862,
-      minLat: 31.197246498871603,
-      maxLon: 122.46518797049585,
-      maxLat: 32.67199009043264,
-      zoom: 14
-    }
-  })
+  request.get(process.env.VUE_APP_API + '/alarmInfo/getRadarInfo')
