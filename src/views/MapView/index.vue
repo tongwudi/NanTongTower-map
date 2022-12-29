@@ -41,25 +41,6 @@
         个
       </li>
     </ul>
-
-    <!-- 弹框-摄像 -->
-    <m-dialog className="camera-dialog" title="报警" :visible.sync="showCamera">
-      <div class="left fl">
-        <div class="box box1"></div>
-        <div class="box box2"></div>
-        <div class="box box3"></div>
-      </div>
-      <div class="right fl">
-        <ul>
-          <li><span>报警内容：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
-          <li><span>报警时间：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
-          <li><span>报警类型：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
-          <li><span>经度：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
-          <li><span>纬度：</span><span>XXXXXXXXXXXXXXXXXXXX</span></li>
-        </ul>
-        <div class="box box4"></div>
-      </div>
-    </m-dialog>
   </div>
 </template>
 
@@ -91,8 +72,7 @@ export default {
       pointInfo: {},
       showMarkerModal: false,
       markerStyles: {},
-      markerInfo: {},
-      showCamera: false
+      markerInfo: {}
     }
   },
   filters: {
@@ -126,12 +106,6 @@ export default {
     this.mountSingleClick()
     // 挂载标记点鼠标滑过事件
     this.mountPointerMove()
-
-    // 地址实例：http://localhost:8080/#/?lot=12&lat=15
-    const params = this.$route.query
-    if (params.lot && params.lat) {
-      this.showCamera = true
-    }
   },
   destroyed() {
     this.socket && this.socket.close()
@@ -282,59 +256,6 @@ export default {
   }
   .red {
     color: red;
-  }
-}
-.camera-dialog {
-  padding: 20px 45px;
-  background-image: url('@/assets/image/camera-bg.png');
-  color: #fff;
-  z-index: 4;
-  :deep(.dialog-body) {
-    overflow: hidden;
-    padding-bottom: 30px;
-  }
-  .box {
-    background-color: #043464;
-  }
-  .left {
-    width: 610px;
-    margin-right: 20px;
-  }
-  .box1 {
-    width: 100%;
-    height: 300px;
-  }
-  .box2 {
-    margin-right: 10px;
-  }
-  .box2,
-  .box3 {
-    display: inline-block;
-    margin-top: 10px;
-    width: 300px;
-    height: 200px;
-  }
-  .right {
-    display: flex;
-    flex-direction: column;
-  }
-  .box4 {
-    width: 300px;
-    height: 300px;
-  }
-  ul {
-    flex: 1;
-    margin-bottom: 15px;
-  }
-  li {
-    margin: 15px 0;
-    span {
-      display: inline-block;
-      &:first-child {
-        width: 5em;
-        text-align: right;
-      }
-    }
   }
 }
 </style>

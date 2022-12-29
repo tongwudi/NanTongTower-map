@@ -41,15 +41,19 @@ export const initMap = (target) => {
       return 'tiles/' + z + '/' + x + '/' + y + '.png'
     }
   })
+  const tileLayer = new TileLayer({
+    source: baiduSource
+  })
   // 初始化地图
   map = new Map({
-    layers: [
-      new TileLayer({
-        source: baiduSource
-      })
-    ],
+    // 地图容器ID
+    target,
+    // 地图图层
+    layers: [tileLayer],
     view: new View({
+      // 地图中心点
       center: transform([120.8573, 31.8209], 'EPSG:4326', 'EPSG:3857'),
+      // 地图范围
       extent: transformExtent(
         [
           118.69615846707765, 30.802104732318227, 122.80072753482629,
@@ -58,10 +62,11 @@ export const initMap = (target) => {
         'EPSG:4326',
         'EPSG:3857'
       ),
+      // 最大缩放级别
       maxZoom: 14,
-      zoom: 13 // 默认缩放级别
-    }),
-    target
+      // 默认缩放级别
+      zoom: 13
+    })
   })
   return map
 }
@@ -582,4 +587,38 @@ const hexToRgba = (hex = '#445DA7', opacity = 50) => {
   opacity = opacity * 0.01
 
   return [red, green, blue, opacity]
+}
+
+let pointVectorLayer = null
+export const renderPosition = (point) => {
+  pointVectorLayer && map.removeLayer(pointVectorLayer)
+
+  const vectorSource = new VectorSource({ wrapX: false })
+  pointVectorLayer = new VectorLayer({
+    source: vectorSource
+  })
+  map.addLayer(pointVectorLayer)
+
+  let feature = new Feature({
+    geometry: new Point(
+      fromLonLat([Number(point[0]) + 0.013, Number(point[1]) - 0.167])
+    )
+  })
+  feature.setStyle(
+    new Style({
+      image: new Icon({
+        scale: 1.2,
+        src: require('@/assets/image/type_icon/aisB_1.fb51160f.png')
+      })
+    })
+  )
+  vectorSource.addFeature(feature)
+
+  // 获取地图视图 view
+  const view = map.getView()
+  const extent = feature.getGeometry().getExtent()
+  // 定位范围
+  view.fit(extent, {
+    duration: 1200 // 动画的持续时间
+  })
 }
