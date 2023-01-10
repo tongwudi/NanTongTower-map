@@ -28,7 +28,7 @@
       <li>
         <span>时间：</span><span>{{ pointInfo.timestamp | fommatDate }}</span>
       </li>
-      <li>
+      <li v-if="pointInfo.mmsi">
         <span>mmsi：</span><span>{{ pointInfo.mmsi }}</span>
       </li>
     </ul>
@@ -167,7 +167,7 @@ export default {
     },
     async getYJRegion() {
       const res = await getByRegion()
-      const points = res.result.targets?.filter((item) => item.stp != 0) || []
+      const points = res.result.targets?.filter(item => item.stp != 0) || []
       renderYjPoints(points)
     },
     changePoint(isYj) {
@@ -180,10 +180,10 @@ export default {
       }
     },
     mountSingleClick() {
-      this.map.on('singleclick', (e) => {
+      this.map.on('singleclick', e => {
         let feature = this.map.forEachFeatureAtPixel(
           e.pixel,
-          (feature) => feature
+          feature => feature
         )
         if (feature && feature.values_.isws_point) {
           const featureInfo = { ...feature.values_.isws_point }
@@ -192,7 +192,7 @@ export default {
               targetId: featureInfo.targetId,
               mmsi: featureInfo.mmsi
             }
-            getShipName(params).then((res) => {
+            getShipName(params).then(res => {
               if (res.code === 0) {
                 featureInfo.name = res.data.vesselName
               }
@@ -209,10 +209,10 @@ export default {
       })
     },
     mountPointerMove() {
-      this.map.on('pointermove', (e) => {
+      this.map.on('pointermove', e => {
         let feature = this.map.forEachFeatureAtPixel(
           e.pixel,
-          (feature) => feature
+          feature => feature
         )
         if (feature && feature.values_.marker) {
           const featureInfo = { ...feature.values_.marker }
@@ -247,9 +247,12 @@ export default {
 .point-modal {
   position: fixed;
   padding: 8px 10px;
-  color: white;
   font-size: 20px;
-  background: rgba(0, 0, 0, 0.8);
+  // background: rgba(0, 0, 0, 0.8);
+  color: white;
+  background: #05193d;
+  border: 2px solid #0b2d77;
+  border-radius: 6px;
   z-index: 4;
   li {
     padding: 5px;

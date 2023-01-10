@@ -1,8 +1,14 @@
 <template>
   <div class="section">
-    <span class="click-active alarm-region" @click="alarmRegionClick"></span>
-    <span class="click-active alarm-icon1" @click="alarmClick(false)"></span>
-    <span class="click-active alarm-icon2" @click="alarmClick(true)"></span>
+    <el-tooltip effect="dark" content="新增区域" placement="top">
+      <span class="click-active alarm-region" @click="alarmRegionClick"></span>
+    </el-tooltip>
+    <el-tooltip effect="dark" content="海兰信告警" placement="top">
+      <span class="click-active alarm-icon1" @click="alarmClick(false)"></span>
+    </el-tooltip>
+    <el-tooltip effect="dark" content="鹰觉告警" placement="top">
+      <span class="click-active alarm-icon2" @click="alarmClick(true)"></span>
+    </el-tooltip>
 
     <!-- 弹框-报警模块 -->
     <m-dialog
@@ -18,11 +24,11 @@
         class="dialog-operation"
       >
         <el-button
-          type="primary"
           plain
           icon="el-icon-circle-plus-outline"
           @click="addAreaClick"
-          >新增
+        >
+          新增
         </el-button>
         <div class="hide-all-area">
           <el-checkbox @change="hideAllArea">隐藏所有区域</el-checkbox>
@@ -32,7 +38,7 @@
         <el-table :data="tableData">
           <el-table-column label="隐藏" align="center" width="80px">
             <template slot-scope="{ $index, row }">
-              <el-checkbox @change="(e) => hideArea($index, e, row)" />
+              <el-checkbox @change="e => hideArea($index, e, row)" />
             </template>
           </el-table-column>
           <el-table-column label="名称" align="center">
@@ -88,14 +94,16 @@
         </el-form-item>
         <el-form-item label="绘制形状" prop="areaScopeType">
           <el-input v-show="false" v-model="form.areaScopeType" disabled />
-          <el-tag
-            v-for="(item, index) in shapes"
-            :key="index"
-            :class="{ active: shapeType === item.type }"
-            @click="changeShape(item.type)"
-          >
-            <img :src="item.shapePath" alt="" />
-          </el-tag>
+          <el-row type="flex">
+            <el-tag
+              v-for="(item, index) in shapes"
+              :key="index"
+              :class="{ active: shapeType === item.type }"
+              @click="changeShape(item.type)"
+            >
+              <img :src="item.shapePath" alt="" />
+            </el-tag>
+          </el-row>
         </el-form-item>
         <el-form-item label="模板下载">
           <el-button>导入坐标</el-button>
@@ -183,7 +191,7 @@ import {
   removeDrawFeature,
   positionDrawFeature,
   drawGraph,
-  removeInteraction,
+  removeInteraction
 } from '@/utils/map'
 
 export default {
@@ -257,7 +265,7 @@ export default {
 
       const points = data.list.reduce((cur, item) => {
         const areaScope = JSON.parse(item.areaScope)
-        const curItem = areaScope.map((v) => {
+        const curItem = areaScope.map(v => {
           const { longitude, latitude } = v
           return [longitude, latitude]
         })
@@ -277,8 +285,8 @@ export default {
       this.pagination.pageNum++
       this.getAreaPage()
     },
-    hideAllArea(val) {
-      destroyDrawLayer(val)
+    hideAllArea(checked) {
+      destroyDrawLayer(checked)
     },
     hideArea(idx, val, row) {
       row.isHide = val
@@ -302,9 +310,9 @@ export default {
       this.$set(this.form, 'areaScopeType', type === 'Polygon' ? 1 : 2)
       removeInteraction()
 
-      drawGraph(type, (res) => {
+      drawGraph(type, res => {
         const { areaScope, radius } = res
-        this.areaScope = areaScope.map((item) => {
+        this.areaScope = areaScope.map(item => {
           return {
             longitude: item[0],
             latitude: item[1]
@@ -314,7 +322,7 @@ export default {
       })
     },
     save() {
-      this.$refs['form'].validate((valid) => {
+      this.$refs['form'].validate(valid => {
         if (valid) {
           const { areaScope, radius } = this
           const params = {
@@ -322,7 +330,7 @@ export default {
             areaScope: JSON.stringify(areaScope),
             radius
           }
-          saveArea(params).then((res) => {
+          saveArea(params).then(res => {
             this.reset()
             this.getAreaPage()
           })
@@ -398,20 +406,6 @@ export default {
   :deep(.dialog-body) {
     padding-left: 0;
     padding-right: 16px;
-  }
-}
-
-/* 按钮样式 */
-.el-button {
-  :deep(i) {
-    font-size: 18px;
-    color: #1acbfe;
-    vertical-align: bottom;
-  }
-  // 功能按钮
-  &--primary.is-plain {
-    padding: 10px 16px;
-    font-size: 16px;
   }
 }
 </style>

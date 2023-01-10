@@ -1,11 +1,19 @@
 <template>
   <div class="section">
-    <span class="click-active legend-btn" @click="changeLegend"></span>
+    <el-tooltip effect="dark" content="切换图例" placement="right">
+      <span class="click-active legend-btn" @click="legendControl"></span>
+    </el-tooltip>
+    <el-tooltip effect="dark" content="切换雷达" placement="right">
+      <span class="click-active radar-btn" @click="changeRadar"></span>
+    </el-tooltip>
+    <el-tooltip effect="dark" content="隐藏" placement="right">
+      <span class="click-active area-btn" @click="changeForbidden"></span>
+    </el-tooltip>
+
     <transition>
-      <div class="legend legend-2" key="box2" v-if="showYj"></div>
-      <div class="legend legend-1" key="box1" v-else></div>
+      <div class="legend legend-2" key="box2" v-if="showLegend && showYj"></div>
+      <div class="legend legend-1" key="box1" v-else-if="showLegend && !showYj"></div>
     </transition>
-    <span class="click-active area-btn" @click="changeForbidden"></span>
   </div>
 </template>
 
@@ -15,12 +23,16 @@ import { destroyForbiddenLayer } from '@/utils/map'
 export default {
   data() {
     return {
+      showLegend: false,
       showYj: false,
       isHide: false
     }
   },
   methods: {
-    changeLegend() {
+    legendControl() {
+      this.showLegend = !this.showLegend
+    },
+    changeRadar() {
       this.showYj = !this.showYj
 
       this.$emit('changePoint', this.showYj)
@@ -54,6 +66,9 @@ export default {
   }
   .legend-btn {
     background-image: url('@/assets/image/legend-icon.png');
+  }
+  .radar-btn {
+    background-image: url('@/assets/image/radar-icon.png');
   }
   .area-btn {
     width: 36px;

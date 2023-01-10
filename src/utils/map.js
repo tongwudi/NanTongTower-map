@@ -268,7 +268,7 @@ export const positionDrawFeature = (idx) => {
   const extent = drawFeatures[idx].getGeometry().getExtent()
   // 定位范围
   view.fit(extent, {
-    duration: 1200 // 动画的持续时间
+    duration: 1500 // 动画的持续时间
   })
 }
 
@@ -423,7 +423,7 @@ export const renderYjPoints = (points) => {
     feature.setStyle(
       new Style({
         image: new Icon({
-          scale: 1.2,
+          scale: 0.75,
           src: chooseYjTypeIcon(item.stp)
         })
       })
@@ -619,6 +619,6 @@ export const renderPosition = (point) => {
   const extent = feature.getGeometry().getExtent()
   // 定位范围
   view.fit(extent, {
-    duration: 1200 // 动画的持续时间
+    duration: 1500 // 动画的持续时间
   })
 }

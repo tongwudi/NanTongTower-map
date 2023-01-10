@@ -6,7 +6,12 @@
     v-bind="$attrs"
   >
     <el-row type="flex" align="center" class="dialog-operation">
-      <el-select style="width: 130px" v-model="value" placeholder="请选择">
+      <el-select
+        style="width: 130px"
+        size="small"
+        v-model="value"
+        placeholder="请选择"
+      >
         <el-option label="报警类型" value="1" />
         <el-option label="处理状态" value="2" />
         <el-option label="报警等级" value="3" />

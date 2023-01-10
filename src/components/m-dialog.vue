@@ -46,8 +46,8 @@ export default {
 .dialog {
   padding: 30px 45px;
   position: fixed;
-  left: 0;
-  top: 0;
+  left: 20%;
+  top: 80px;
   background-size: 100% 100%;
   z-index: 5;
   &-header {
