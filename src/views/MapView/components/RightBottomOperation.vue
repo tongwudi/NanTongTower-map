@@ -188,7 +188,7 @@ import { getPage, saveArea } from '@/api/index'
 import {
   renderDrawFeature,
   destroyDrawLayer,
-  removeDrawFeature,
+  hideOneDrawFeature,
   positionDrawFeature,
   drawGraph,
   removeInteraction
@@ -290,7 +290,7 @@ export default {
     },
     hideArea(idx, val, row) {
       row.isHide = val
-      removeDrawFeature(idx, val)
+      hideOneDrawFeature(idx, val)
     },
     positionClick(idx) {
       positionDrawFeature(idx)

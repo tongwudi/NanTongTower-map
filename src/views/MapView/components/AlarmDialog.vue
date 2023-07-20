@@ -5,25 +5,9 @@
     v-on="$listeners"
     v-bind="$attrs"
   >
-    <el-row type="flex" align="center" class="dialog-operation">
-      <el-select
-        style="width: 130px"
-        size="small"
-        v-model="value"
-        placeholder="请选择"
-      >
-        <el-option label="报警类型" value="1" />
-        <el-option label="处理状态" value="2" />
-        <el-option label="报警等级" value="3" />
-      </el-select>
-      <div class="options">
-        <el-tag effect="dark">一级(5)</el-tag>
-        <el-tag effect="dark">二级(10)</el-tag>
-      </div>
-    </el-row>
-    <div class="dialog-table">
-      <el-table :data="alarmTableData">
-        <template v-if="isYj">
+    <template v-if="isYj">
+      <div class="dialog-table">
+        <el-table :data="alarmTableData">
           <el-table-column
             prop="alarmCategory"
             label="告警类型"
@@ -42,7 +26,7 @@
             align="center"
             width="180"
           />
-          <el-table-column label="操作" align="center" width="180px">
+          <el-table-column label="操作" align="center" width="170px">
             <template slot-scope="{ row }">
               <el-button size="mini" type="primary">确认</el-button>
               <el-button size="mini" type="info" @click="handleDelete(row)">
@@ -50,8 +34,29 @@
               </el-button>
             </template>
           </el-table-column>
-        </template>
-        <template v-else>
+        </el-table>
+      </div>
+    </template>
+
+    <template v-else>
+      <el-row type="flex" align="center" class="dialog-operation">
+        <el-select
+          style="width: 130px"
+          size="small"
+          v-model="value"
+          placeholder="请选择"
+        >
+          <el-option label="报警类型" value="1" />
+          <el-option label="处理状态" value="2" />
+          <el-option label="报警等级" value="3" />
+        </el-select>
+        <div class="options">
+          <el-tag effect="dark">一级(5)</el-tag>
+          <el-tag effect="dark">二级(10)</el-tag>
+        </div>
+      </el-row>
+      <div class="dialog-table">
+        <el-table :data="alarmTableData">
           <el-table-column
             prop="areaName"
             label="告警区域"
@@ -84,9 +89,10 @@
               </el-button>
             </template>
           </el-table-column>
-        </template>
-      </el-table>
-    </div>
+        </el-table>
+      </div>
+    </template>
+
     <div class="pagination">
       <a
         href="javascript:;"

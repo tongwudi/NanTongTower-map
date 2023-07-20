@@ -250,7 +250,7 @@ export const destroyDrawLayer = (isHide) => {
  * @param {Number} idx 数据索引
  * @param {Boolean} isHide 是否显示
  */
-export const removeDrawFeature = (idx, isHide) => {
+export const hideOneDrawFeature = (idx, isHide) => {
   const feature = drawFeatures[idx]
 
   isHide
